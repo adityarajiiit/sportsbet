@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: sportsbet
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args: 
+        - DATABASE_URL=${DATABASE_URL}
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - NODE_ENV=production
+      - SECRET=${SECRET}
+      - GOOGLE_ID=${GOOGLE_ID}
+      - GOOGLE_SECRET=${GOOGLE_SECRET}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - GAUTH_EMAIL=${GAUTH_EMAIL}
+      - GAUTH_PASSWORD=${GAUTH_PASSWORD}
+      - MUX_SECRET_KEY=${MUX_SECRET_KEY}
+      - MUX_TOKEN_ID=${MUX_TOKEN_ID}
+      - AUTH_SECRET=${AUTH_SECRET}      
+    restart: unless-stopped  
+    
+      
