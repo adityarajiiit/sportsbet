@@ -11,7 +11,7 @@ const dashboard=()=>{
         url=`http://${process.env.DOMAIN}:3000`
     }
     else{
-        url=`https://${process.env.DOMAIN}`
+        url=`http://${process.env.DOMAIN}`
     }
     return(
         <div>

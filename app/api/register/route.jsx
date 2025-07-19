@@ -32,7 +32,7 @@ if(process.env.DOMAIN=='localhost'){
     link=`http://${process.env.DOMAIN}:3000/verify/${token}`
 }
 else{
-    link=`https://${process.env.DOMAIN}/verify/${token}`
+    link=`http://${process.env.DOMAIN}/verify/${token}`
 }
 const sendemail=await sendEmail(email,link)
 if(!sendemail){
