@@ -24,15 +24,17 @@ export async function POST(request){
         }
     })
     const token=await generateVerificationToken(email)
+    console.log('Token:',token)
     if(!token){
         return new NextResponse('Error Generating Token')
     }
 let link;
 if(process.env.DOMAIN=='localhost'){
-    link=`http://${process.env.DOMAIN}:3000/verify/${token}`
+    link=`http://${process.env.DOMAIN}:3000/verify/${token.token}`
+    console.log('Verification Link:',link)
 }
 else{
-    link=`http://${process.env.DOMAIN}/verify/${token}`
+    link=`http://${process.env.DOMAIN}/verify/${token.token}`
 }
 const sendemail=await sendEmail(email,link)
 if(!sendemail){
