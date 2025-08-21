@@ -40,6 +40,5 @@ const sendemail=await sendEmail(email,link)
 if(!sendemail){
     return new NextResponse('Error Sending Email')
 }
-
     return NextResponse.json(user)
 }
