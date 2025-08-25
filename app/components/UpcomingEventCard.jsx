@@ -1,0 +1,50 @@
+"use client";
+import React from "react";
+import Image from "next/image";
+import { FaBell } from "react-icons/fa";
+import { FaFlag } from "react-icons/fa";
+import { MdEvent } from "react-icons/md";
+function UpcomingEventCard({ title, team1, team2, date, image1, image2 }) {
+  return (
+    <div className="p-5 flex flex-col justify-center items-center bg-base-200 gap-2 rounded-xl border border-neutral-content/5 h-fit">
+      <div className="flex justify-between items-center w-full">
+        <h1 className="font-medium text-sm font-poppins text-neutral-200 flex gap-2 justify-center items-center">
+          <FaFlag className="size-3.5"/>
+          {title}
+        </h1>
+        <p className="font-medium text-xs font-inter text-neutral-300 flex gap-1 justify-center items-center">
+          <MdEvent />
+          {date}
+        </p>
+      </div>
+      <div className="flex justify-between items-center gap-4 w-full mt-2">
+        <div className="flex items-center justify-center gap-3">
+          <Image
+            src={image1}
+            alt={team1}
+            className="h-7 w-7 rounded-md"
+          ></Image>
+          <div className="flex flex-col justify-center items-start ">
+            <p className="text-base font-semibold font-poppins">{team1}</p>
+          </div>
+        </div>
+        <p className="text-xl font-goldman font-semibold">VS</p>
+        <div className="flex items-center justify-center gap-3">
+          <Image
+            src={image2}
+            alt={team2}
+            className="h-7 w-7 rounded-md"
+          ></Image>
+          <div className="flex flex-col justify-center items-start">
+            <p className="text-base font-semibold font-poppins">{team2}</p>
+          </div>
+        </div>
+      </div>
+      <button className="btn rounded-full btn-warning w-full mt-2">
+        <FaBell /> Notify Me
+      </button>
+    </div>
+  );
+}
+
+export default UpcomingEventCard;
