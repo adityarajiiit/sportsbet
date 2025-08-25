@@ -2,14 +2,12 @@ version: '3.8'
 
 services:
   app:
-    container_name: sportsbet
+    container_name: bettingengine
     build:
       context: .
       dockerfile: Dockerfile
-      args: 
-        - DATABASE_URL=${DATABASE_URL}
     ports:
-      - "3000:3000"
+      - "4000:4000"
     env_file:
       - .env
     environment:

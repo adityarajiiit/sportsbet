@@ -3,7 +3,7 @@ dotenv.config()
 import {PrismaClient} from "@prisma/client"
 
 const prisma=new PrismaClient()
-import { queue,delayJob,removeJob } from "../utils/bullmq.js";
+import { delayJob,removeJob } from "../utils/bullmq.js";
 const newReminder=async(req,res)=>{
     try{
 const userId=req.userId
@@ -46,18 +46,30 @@ if(!user){
     return res.json({error:"no user"})
 }
 const data=req.body
-if(data.status!=="pending"){
-    return res.json({error:"pending reminder only"})
+const currentReminder=await prisma.reminder.findUnique({
+    where:{
+        id:data.reminderId
+    }
+})
+if(!currentReminder){
+    return res.json({error:"reminder not found"})
 }
+
+if(currentReminder.status!=="pending"){
+    return res.json({error:"only pending reminders can be snoozed"})
+}
+await removeJob(data.reminderId)
+const newTime=new Date(Date.now()+data.snoozeTime)
 const reminder=await prisma.reminder.update({
     where:{
         id:data.reminderId
     },
     data:{
-        time:new Date()+data.snoozetime,
+        time:newTime,
     }
 })
-await delayJob(reminder.id,userId,Math.max(new Date(reminder.time).getTime()-Date.now(),0))
+await delayJob(reminder.id,userId,data.snoozeTime)
+
 return res.json({reminder})
     }
     catch(e){

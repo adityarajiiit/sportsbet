@@ -55,7 +55,7 @@ stockhold=await prisma.stockholder.update({
     }
 })
     }
-const newtrans=await prisma.stocktransaction.create({
+const newtrans=await prisma.stockTransaction.create({
     data:{
         pagetype:data.stocktype,
         playerId:data.playerId||null,
@@ -126,7 +126,7 @@ const newstockhold=await prisma.stockholder.update({
         averageprice:newavg
     }
 })
-const newtrans=await prisma.stocktransaction.create({
+const newtrans=await prisma.stockTransaction.create({
     data:{
         pagetype:data.stocktype,
         userId:user.id,
@@ -260,4 +260,4 @@ return res.json({stocks})
         return res.json({error:e.message})
     }
 }
-export {newStockTransaction,sellTransaction,getuserPortfolio,searchStock}
+export {newStockTransaction,sellTransaction,getuserPortfolio,searchStock,getStockholders}

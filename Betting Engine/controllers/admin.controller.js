@@ -3,7 +3,7 @@ dotenv.config()
 import {PrismaClient} from "@prisma/client"
 
 const prisma=new PrismaClient()
-const newTeam=async(req,res)=>{
+export const newTeam=async(req,res)=>{
     try{
 const userId=req.userId
 const user=await prisma.user.findUnique({
@@ -34,7 +34,7 @@ return res.json({team})
         return res.status(500).json({error:e.message})
     }
 }
-const newPlayer=async(req,res)=>{
+export const newPlayer=async(req,res)=>{
     try{
     const userId=req.userId
     const user=await prisma.user.findUnique({
@@ -81,7 +81,7 @@ catch(e){
     
 }
 
-const newMatch=async(req,res)=>{
+export const newMatch=async(req,res)=>{
     try{
 const userId=req.userId
 const user=await prisma.user.findUnique({
@@ -172,7 +172,7 @@ catch(e){
     return res.status(500).json({error:e.message})
 }
 }
-const deleteMatch=async(req,res)=>{
+export const deleteMatch=async(req,res)=>{
     try{
 const userId=req.userId
 const user=await prisma.user.findUnique({
@@ -184,7 +184,7 @@ const user=await prisma.user.findUnique({
 if(!user){
     return res.json({error:"no user or user not an admin"})
 }
-const matchId=req.body.matchId
+const matchId=req.params.id
 if(!matchId){
     return res.json({error:"no match id"})
 }
@@ -230,7 +230,7 @@ return res.json({match})
         return res.status(500).json({error:e.message})
     }
 }
-const deletePlayer=async(req,res)=>{
+export const deletePlayer=async(req,res)=>{
     try{
 const userId=req.userId
 const user=await prisma.user.findUnique({
@@ -242,7 +242,7 @@ const user=await prisma.user.findUnique({
 if(!user){
     return res.json({error:"no user"})
 }
-const playerId=req.body.playerId
+const playerId=req.params.id
 if(!playerId){
     return res.json({error:"no player id"})
 }
@@ -273,7 +273,7 @@ return res.json({player})
         return res.status(500).json({error:e.message})
     }
 }
-const deleteTeam=async(req,res)=>{
+export const deleteTeam=async(req,res)=>{
     try{
  const userId=req.userId
 const user=await prisma.user.findUnique({
@@ -285,7 +285,7 @@ const user=await prisma.user.findUnique({
 if(!user){
     return res.json({error:"no user or user not an admin"})
 }
-const teamId=req.body.teamId
+const teamId=req.params.id
 if(!teamId){
     return res.json({error:"no team id"})
 }
@@ -316,7 +316,7 @@ return res.json({team})
         return res.status(500).json({error:e.message})
     }
 }
-const newMatchBet=async(req,res)=>{
+export const newMatchBet=async(req,res)=>{
     try{
 const userId=req.userId
 const user=await prisma.user.findUnique({
@@ -354,7 +354,7 @@ catch(e){
     return res.status(500).json({error:e.message})
 }
 }
-const newStock=async(req,res)=>{
+export const newStock=async(req,res)=>{
     try{
 const userId=req.userId
 const user=await prisma.user.findUnique({

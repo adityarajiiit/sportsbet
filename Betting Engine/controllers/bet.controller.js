@@ -60,7 +60,7 @@ const user=await prisma.user.findUnique({
 if(!user){
     return res.json({error:"no user found"})
 }
-const matchId=req.query.matchId
+const matchId=req.params.id
 const bets=await prisma.bet.findMany({
     where:{
         matchId:matchId,
@@ -125,7 +125,7 @@ const user=await prisma.user.findUnique({
 if(!user){
     return res.json({error:"no user found"})
 }
-const matchId=req.query.matchId
+const matchId=req.params.id
 if(!matchId){
     return res.json({error:"no matchId provided"})
 }
@@ -161,7 +161,7 @@ const user=await prisma.user.findUnique({
 if(!user){
     return res.json({error:"no user"})
 }
-const betId=req.query.betId
+const betId=req.params.id
 if(!betId){
     return res.json({error:"no betid is present"})
 }
@@ -204,7 +204,7 @@ const user=await prisma.user.findUnique({
         if(!user){
             return res.json({error:"no user"})
         }
-        const betId=req.query.betId
+        const betId=req.params.id
         if(!betId){
             return res.json({error:"no betid"})
         }
@@ -268,7 +268,7 @@ const user=await prisma.user.findUnique({
 if(!user){
     return res.json({error:"not a user"})
 }
-const betId=req.query.betId
+const betId=req.params.id
 const result=req.body.result
 if(!betId||!result){
     return res.json({error:"betId or result not there"})

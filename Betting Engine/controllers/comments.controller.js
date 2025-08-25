@@ -104,3 +104,4 @@ return res.json({commentdelete})
         return res.json({error:e.message})
     }
 }
+export {newComment,getComments,deleteComment}

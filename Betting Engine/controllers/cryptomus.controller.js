@@ -71,7 +71,6 @@ const newOrder=async(req,res)=>{
 }
 const successPayment=async(req,res)=>{
     try{
-        const userId=req.userId
         const data=req.body
         if(!data){
             return res.json({error:"no data in body"})
@@ -93,7 +92,7 @@ const successPayment=async(req,res)=>{
         }
         const payment=await prisma.payment.create({
             data:{
-                userId,
+                
                 orderId:data.order_id,
                 payercurrency:data.payer_currency,
                 amount:data.amount,
@@ -112,7 +111,7 @@ const successPayment=async(req,res)=>{
         })
         await prisma.wallet.update({
             where:{
-                userId
+                userId:order.userId
             },
             data:{
                 balance:{
@@ -126,3 +125,4 @@ const successPayment=async(req,res)=>{
         return res.json({error:e.message})
     }
 }
+export {createWallet,newOrder,successPayment}

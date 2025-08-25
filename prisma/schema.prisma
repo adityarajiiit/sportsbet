@@ -33,6 +33,7 @@ model User{
   notifications Notification[]
   wallet Wallet? @relation("usertoken")
   orders Order[] @relation("userorders")
+  files File[] @relation("userfiles")
 }
 enum Role{
   Guest
@@ -386,7 +387,6 @@ model Order{
 }
 model Payment{
   id String @id @default(auto()) @map("_id") @db.ObjectId
-  userId String @db.ObjectId
   orderId String @db.ObjectId
   payercurrency String 
   amount Float
@@ -401,4 +401,14 @@ enum orderstatus{
   pending
   success
   failed
+}
+model File{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  filename String
+  mimetype String
+  bucketname String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation("userfiles",fields:[userId],references:[id],onDelete:Cascade)
 }
