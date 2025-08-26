@@ -29,7 +29,7 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/Betting\ Engine ./Betting\ Engine/
+COPY --from=builder /app/betting-engine ./betting-engine/
 COPY --from=builder /app/ecosystem.config.mjs ./
 EXPOSE 3000
 EXPOSE 4000

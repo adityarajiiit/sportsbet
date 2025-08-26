@@ -4,7 +4,7 @@ import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
 import { dirname } from "path"
-import { io } from "@/Betting Engine/index.js"
+import { io } from "@/betting-engine/index.js"
 import {PrismaClient} from "@prisma/client"
 import { match } from "assert"
 const prisma=new PrismaClient()

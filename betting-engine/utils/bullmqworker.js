@@ -7,7 +7,7 @@ import {PrismaClient} from "@prisma/client"
 
 const prisma=new PrismaClient()
 const connection=new Redis(process.env.REDIS_URI)
-import { io } from "@/Betting Engine/index.js";
+import { io } from "@/betting-engine/index.js";
 const transporter=nodemailer.createTransport({
     service:'gmail',
     auth:{

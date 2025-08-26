@@ -4,7 +4,7 @@ import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
 import { dirname } from "path"
-import { io } from "@/Betting Engine/index.js"
+import { io } from "@/betting-engine/index.js"
 dotenv.config({path:'../../.env'})
 const filename=fileURLToPath(import.meta.url)
 const dirname=dirname(filename)
