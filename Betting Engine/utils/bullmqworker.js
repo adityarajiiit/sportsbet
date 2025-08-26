@@ -2,7 +2,7 @@ import { Worker } from "bullmq";
 import Redis from "ioredis";
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv'
-dotenv.config()
+dotenv.config({path:'../../.env'})
 import {PrismaClient} from "@prisma/client"
 
 const prisma=new PrismaClient()

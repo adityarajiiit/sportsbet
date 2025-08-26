@@ -2,7 +2,7 @@ import {PrismaClient} from "@prisma/client"
 import crypto from "crypto"
 const prisma=new PrismaClient()
 import dotenv from "dotenv"
-dotenv.config()
+dotenv.config({path:'../../.env'})
 import axios from "axios"
 const createWallet=async(req,res)=>{
     try{

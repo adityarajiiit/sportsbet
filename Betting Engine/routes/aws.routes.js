@@ -3,7 +3,7 @@ import{tempbucket,tempbucketdelete,tempputfile,deletefiletemp} from '../controll
 import { verifyToken } from '../middlewares/verifyToken.js'
 import express from 'express'
 import dotenv from 'dotenv'
-dotenv.config()
+dotenv.config({path:'../../.env'})
 import upload from '../services/multer.js'
 const router=express.Router()
 

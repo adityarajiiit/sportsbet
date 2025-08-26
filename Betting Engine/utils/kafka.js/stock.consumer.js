@@ -8,7 +8,7 @@ import { io } from "@/Betting Engine/index.js"
 import {PrismaClient} from "@prisma/client"
 
 const prisma=new PrismaClient()
-dotenv.config()
+dotenv.config({path:'../../.env'})
 const filename=fileURLToPath(import.meta.url)
 const dirname=dirname(filename)
 const kafka=new Kafka({

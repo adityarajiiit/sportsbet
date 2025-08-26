@@ -1,6 +1,6 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import dotenv from 'dotenv'
-dotenv.config()
+dotenv.config({path:'../../.env'})
 const s3=new S3Client({
     region:"ap-southwest-1",
     endpoint:process.env.STORJ_ENDPOINT,

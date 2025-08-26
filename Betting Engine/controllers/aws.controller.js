@@ -7,7 +7,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 const prisma=new PrismaClient()
 
-dotenv.config()
+dotenv.config({path:'../../.env'})
 
 export const createBucket=async(req,res)=>{
     try {

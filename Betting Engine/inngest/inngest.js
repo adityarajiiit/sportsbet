@@ -2,7 +2,7 @@ import { Inngest } from "inngest";
 import nodemailer from 'nodemailer';
 import { io } from "../index.js";
 import dotenv from 'dotenv'
-dotenv.config()
+dotenv.config({path:'../../.env'})
 import {PrismaClient} from "@prisma/client"
 
 const prisma=new PrismaClient()

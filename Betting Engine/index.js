@@ -11,7 +11,7 @@ import  commentsRoutes from './routes/comments.routes.js'
 import cryptomusRoutes from './routes/cryptomus.routes.js'
 import reminderRoutes from './routes/reminder.routes.js'
 import stockRoutes from './routes/stock.routes.js'
-dotenv.config()
+dotenv.config({path:'../.env'})
 import { inngest,functions } from './inngest/inngest.js';
 import { arcjetMiddleware } from './middlewares/arcjet.middleware.js';
 import awsRoutes from './routes/aws.routes.js'

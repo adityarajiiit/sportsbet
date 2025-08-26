@@ -5,7 +5,7 @@ import path from "path"
 import { fileURLToPath } from "url"
 import { dirname } from "path"
 import { io } from "@/Betting Engine/index.js"
-dotenv.config()
+dotenv.config({path:'../../.env'})
 const filename=fileURLToPath(import.meta.url)
 const dirname=dirname(filename)
 const kafka=new Kafka({

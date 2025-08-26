@@ -23,15 +23,8 @@ jobs:
           tags: ${{secrets.DOCKER_USERNAME}}/sportsbet-next-app:${{ github.sha }}
           secrets: |
             DATABASE_URL=${{ secrets.DATABASE_URL }}
-      - name: Build and push betting engine
-        uses: docker/build-push-action@v4    
-        with:
-          context: ./Betting Engine
-          file: ./Betting Engine/Dockerfile
-          push: true
-          tags: ${{secrets.DOCKER_USERNAME}}/sportsbet-betting-engine:${{ github.sha }}
       - name: Deploy to VM
         run: |
           echo "${{secrets.SSH_PRIVATE_KEY}}" > ~/ssh_key
           chmod 600 ~/ssh_key
-          ssh -o StrictHostKeyChecking=no -i ~/ssh_key root@${{ secrets.GCP_IP }} -t "echo '${{ secrets.ENV_PROD }}' > .env.production && docker stop sportsbet||true && docker rm sportsbet||true &&docker stop bettingengine||true&& docker rm bettingengine||true &&docker run --name sportsbet -d -p 3000:3000 --env-file .env.production ${{ secrets.DOCKER_USERNAME }}/sportsbet-next-app:${{ github.sha }}&& docker run --name bettingengine -d -p 4000:4000 --env-file .env.production ${{ secrets.DOCKER_USERNAME }}/sportsbet-betting-engine:${{ github.sha }}&&docker image prune -af"
+          ssh -o StrictHostKeyChecking=no -i ~/ssh_key root@${{ secrets.GCP_IP }} -t "echo '${{ secrets.ENV_PROD }}' > .env.production && docker stop sportsbet||true && docker rm sportsbet||true&&docker run --name sportsbet -d -p 3000:3000 --env-file .env.production ${{ secrets.DOCKER_USERNAME }}/sportsbet-next-app:${{ github.sha }}&&docker image prune -af"

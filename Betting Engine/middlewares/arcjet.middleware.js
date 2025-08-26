@@ -1,5 +1,5 @@
 import dotenv from "dotenv"
-dotenv.config()
+dotenv.config({path:'../../.env'})
 import arcjet,{shield,detectBot,tokenBucket} from "@arcjet/node"
 import { isSpoofedBot } from "@arcjet/inspect"
 
