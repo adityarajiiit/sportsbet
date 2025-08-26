@@ -1,4 +1,4 @@
-export default config={
+module.exports={
     apps:[
         {
             name:'nextjs-app',
