@@ -30,7 +30,7 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/betting-engine ./betting-engine/
-COPY --from=builder /app/ecosystem.config.js ./
+COPY --from=builder /app/ecosystem.config.cjs ./
 EXPOSE 3000
 EXPOSE 4000
-CMD ["pm2-runtime","start","ecosystem.config.js"]
+CMD ["pm2-runtime","start","ecosystem.config.cjs"]
