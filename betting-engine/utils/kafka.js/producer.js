@@ -17,7 +17,7 @@ export const kafka=new Kafka({
         password:process.env.KAFKA_PASS
     },
     ssl:{
-        ca:[fs.readFileSync(path.join(__dirname,"../../certificates/ca.pem"),"utf-8")]
+        ca:process.env.KAFKA_CERTIFICATE
     }
 })
 

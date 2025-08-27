@@ -27,4 +27,4 @@ jobs:
         run: |
           echo "${{secrets.SSH_PRIVATE_KEY}}" > ~/ssh_key
           chmod 600 ~/ssh_key
-          ssh -o StrictHostKeyChecking=no -i ~/ssh_key root@${{ secrets.GCP_IP }} -t "echo '${{ secrets.ENV_PROD }}' > .env.production && docker stop sportsbet||true && docker rm sportsbet||true&&docker run --name sportsbet -d -p 3000:3000 -p 4000:4000 --env-file .env.production ${{ secrets.DOCKER_USERNAME }}/sportsbet-next-app:${{ github.sha }}&&docker image prune -af"
+          ssh -o StrictHostKeyChecking=no -i ~/ssh_key root@${{ secrets.GCP_IP }}&& docker stop sportsbet||true && docker rm sportsbet||true&&docker run --name sportsbet -d -p 3000:3000 -p 4000:4000 --env-file .env.production ${{ secrets.DOCKER_USERNAME }}/sportsbet-next-app:${{ github.sha }}&&docker image prune -af"
