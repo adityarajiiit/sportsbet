@@ -10,7 +10,7 @@ module.exports={
         },
         {
             name:'betting-engine',
-            script:'./Betting Engine/dist/index.js',
+            script:'./betting-engine/index.js',
             env:{
                 NODE_ENV:'production',
                 ARCJET_ENV: 'production'
