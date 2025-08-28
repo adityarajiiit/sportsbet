@@ -8,3 +8,4 @@ docker-compose.yml
 .next
 README.md
 npm-debug.log*
+/betting-engine/.env

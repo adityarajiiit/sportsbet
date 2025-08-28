@@ -24,6 +24,16 @@ model User{
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   accounts Account[]
+  stockholders Stockholder[]
+  bets Bet[]
+  stockTransactions StockTransaction[]
+  alerts Alert[]
+  reminders Reminder[]
+  comments Comment[]
+  notifications Notification[]
+  wallet Wallet? @relation("usertoken")
+  orders Order[] @relation("userorders")
+  files File[] @relation("userfiles")
 }
 enum Role{
   Guest
@@ -56,4 +66,349 @@ model VerificationToken{
   email String @unique
   token String @unique
   expiresAt DateTime
+}
+
+model Match{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  title String
+  teamIds String[] @db.ObjectId
+  playerIds String[] @db.ObjectId
+  team1 Json?
+  team2 Json?
+  cricbuzzmatchId Int? @unique
+  start DateTime
+  end DateTime
+  state String @default("Upcoming")
+  stats Json?
+  seriesname String?
+  cricbuzzseriesId Int?
+  status String @default("Upcoming")
+  result String?
+  scorecard Json?
+  bets Bet[]
+  comments Comment[]
+  reminders Reminder[]
+  teams Team[] @relation("matchteams",references:[id],fields:[teamIds])
+  players Player[] @relation("matchplayers",references:[id],fields:[playerIds])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([start])
+  @@index([status])
+}
+
+
+model Team{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String
+  playerIds String[] @db.ObjectId
+  matchIds String[] @db.ObjectId
+  cricbuzzteamId Int? @unique
+  results Json?
+  fixtures Json?
+  image String?
+  players Player[] @relation("teamplayers")
+  matches Match[] @relation("matchteams",references:[id],fields:[matchIds])
+  reminders Reminder[]
+  comments Comment[]
+  stockholders Stockholder[]
+  stocktrans StockTransaction[]
+  matchbetoutcomes Matchbetoutcomes[]
+  stock Stock[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([name])
+}
+model Player{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  name String
+  teamId String? @db.ObjectId
+  image String?
+  cricbuzzteamId Int?
+  battingstyle String?
+  bowlingstyle String?
+  position Json?
+  team Team? @relation("teamplayers",fields:[teamId],references:[id],onDelete:Cascade)
+  career Json?
+  currprice Float @default(50)
+  shares Int @default(1000)
+  cricbuzzplayerId Int? @unique
+  gender String?
+  matchIds String[] @db.ObjectId
+  matches Match[] @relation("matchplayers",references:[id],fields:[matchIds])
+  stocktrans StockTransaction[]
+  stockholders Stockholder[]
+  reminders Reminder[]
+  comments Comment[]
+  stock Stock[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([name])
+  @@index([teamId])
+}
+enum pagetype{
+  player
+  team
+  match
+}
+model Stock{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  pagetype pagetype
+  playerId String? @db.ObjectId
+  teamId String? @db.ObjectId
+  stockholders Stockholder[] @relation("stockholderslist")
+  stockTransactions StockTransaction[] @relation("stocktranslist")
+  player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
+  team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
+  name String
+  price Float
+  shares Int
+  total Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([name])
+}
+model StockTransaction{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  pagetype pagetype
+  playerId String? @db.ObjectId
+  teamId String? @db.ObjectId
+  userId String @db.ObjectId
+  type transtype @default(buy)
+  stockId String @db.ObjectId
+  stock Stock @relation("stocktranslist",fields:[stockId],references:[id],onDelete:Cascade)
+  price Float
+  shares Int
+  total Float
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
+  team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
+  stockholderId String @db.ObjectId
+  stockholder Stockholder @relation("stocktrans",fields:[stockholderId],references:[id],onDelete:Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+  @@index([playerId])
+  @@index([teamId])
+  @@index([createdAt])
+}
+enum transtype{
+  buy
+  sell
+}
+model Stockholder{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  pagetype pagetype
+  userId String @db.ObjectId
+  playerId String? @db.ObjectId
+  teamId String? @db.ObjectId
+  shares Int @default(0)
+  averageprice Float @default(0)
+  stockId String @db.ObjectId
+  stock Stock @relation("stockholderslist",fields:[stockId],references:[id],onDelete:Cascade)
+  transactions StockTransaction[] @relation("stocktrans")
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
+  team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
+  alerts Alert[] @relation("stockholderalerts")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId,playerId,teamId])
+  @@index([playerId])
+  @@index([teamId])
+  @@index([userId])
+  @@unique([userId,stockId])
+}
+model Bet{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  matchId String @db.ObjectId
+  type bettype 
+  matchbetId String @db.ObjectId
+  matchbet Matchbet @relation("matchbets",fields:[matchbetId],references:[id],onDelete:Cascade)
+  details Json
+  amount Float
+  odds Float
+  status betstatus @default(pending)
+  result Json?
+  issold Boolean @default(false)
+  alerts Alert[] @relation("betalerts")
+  matchoutcomeId String? @db.ObjectId
+  matchoutcome Matchbetoutcomes? @relation("matchbetoutcomes",fields:[matchoutcomeId],references:[id],onDelete:Cascade)
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  match Match @relation(fields:[matchId],references:[id],onDelete:Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId])
+  @@index([matchId])
+  @@index([status])
+}
+
+enum bettype{
+  full
+  spot
+}
+enum betstatus{
+  pending
+  won
+  lost
+  sold
+}
+model Alert{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  pagetype pagetype
+  userId String @db.ObjectId
+  betId String? @db.ObjectId
+  stockholderId String? @db.ObjectId
+  bet Bet? @relation("betalerts",fields:[betId],references:[id],onDelete:Cascade)
+  stockholder Stockholder? @relation("stockholderalerts",fields:[stockholderId],references:[id],onDelete:Cascade)
+  condition Json
+  status alertstatus
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@index([userId])
+  @@index([status])
+}
+enum alertstatus{
+  alertcreated
+  done
+}
+model Reminder{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  pagetype pagetype
+  userId String @db.ObjectId
+  matchId String? @db.ObjectId
+  playerId String? @db.ObjectId
+  teamId String? @db.ObjectId
+  message String
+  time DateTime
+  status reminderstatus @default(pending)
+  type remindertype
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  match Match? @relation(fields:[matchId],references:[id],onDelete:Cascade)
+  player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
+  team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
+  @@index([userId])
+  @@index([status])
+  @@index([time])
+}
+enum remindertype{
+  transactional
+  general
+}
+enum reminderstatus{
+  pending
+  dismissed
+  sent
+}
+model Notification{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  message String
+  type notificationtype
+  read Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+}
+enum notificationtype{
+  alert
+  reminders
+}
+model Comment{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  pagetype pagetype
+  userId String @db.ObjectId
+  matchId String? @db.ObjectId
+  playerId String? @db.ObjectId
+  teamId String? @db.ObjectId
+  parentcommentId String? @db.ObjectId
+  parentcomment Comment? @relation("Replies",fields:[parentcommentId],references:[id],onDelete:NoAction,onUpdate:NoAction)
+  replies Comment[] @relation("Replies")
+  message String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  match Match? @relation(fields:[matchId],references:[id],onDelete:Cascade)
+  player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
+  team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
+  @@index([matchId])
+  @@index([playerId])
+  @@index([teamId])
+  @@index([userId])
+}
+
+model Matchbet{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  matchId String @db.ObjectId
+  title String
+  bets Bet[] @relation("matchbets")
+  status String @default("Upcoming")
+  outcomes Matchbetoutcomes[] @relation("spotbetoutcomes")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([matchId])
+}
+model Matchbetoutcomes{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  matchbetId String @db.ObjectId
+  teamId String @db.ObjectId
+  odds Float
+  total Float
+  bets Bet[] @relation("matchbetoutcomes")
+  matchbet Matchbet @relation("spotbetoutcomes",fields:[matchbetId],references:[id],onDelete:Cascade)
+  team Team @relation(fields:[teamId],references:[id],onDelete:Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([matchbetId])
+  @@index([teamId])
+  @@unique([matchbetId,teamId])
+}
+model Wallet{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @unique @db.ObjectId
+  balance Float @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation("usertoken",fields:[userId],references:[id],onDelete:Cascade)
+}
+model Order{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  amount Float
+  status orderstatus @default(pending)
+  paymentstatus orderstatus @default(pending)
+  paymentinfo Payment[] @relation("orderpayments")
+  user User @relation("userorders",fields:[userId],references:[id],onDelete:Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Payment{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  orderId String @db.ObjectId
+  payercurrency String 
+  amount Float
+  paymentamount Float
+  currency String
+  network String
+  order Order @relation("orderpayments",fields:[orderId],references:[id],onDelete:Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+enum orderstatus{
+  pending
+  success
+  failed
+}
+model File{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  filename String
+  mimetype String
+  bucketname String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation("userfiles",fields:[userId],references:[id],onDelete:Cascade)
 }
