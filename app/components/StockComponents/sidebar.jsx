@@ -1,12 +1,25 @@
 import React from "react";
 import { RiTeamFill } from "react-icons/ri";
 import { FaUserNinja } from "react-icons/fa";
-import { useSelectedUser } from "../store/useSelectedUser";
+import { useSelectedStock } from "@/app/store/useSelectedStock";
 import Image from "next/image";
-import { GiTrophy } from "react-icons/gi";
+import { FaTrophy } from "react-icons/fa6";
 import { TbCoinRupeeFilled } from "react-icons/tb";
 function Sidebar({ teams = [], players = [], category }) {
-  const { selectedUser, setSelectedUser } = useSelectedUser();
+  const { selectedPlayer, setSelectedPlayer, selectedTeam, setSelectedTeam } =
+    useSelectedStock();
+  const isPlayerCategory = category === "Player";
+  const list = isPlayerCategory ? players : teams;
+  const selected = isPlayerCategory ? selectedPlayer : selectedTeam;
+  const handleSelect = (user) => {
+    if (isPlayerCategory) {
+      setSelectedPlayer(user);
+      setSelectedTeam(null); 
+    } else {
+      setSelectedTeam(user);
+      setSelectedPlayer(null);
+    }
+  };
   return (
     <aside className="h-full w-24 lg:w-72 bg-base-300/50 flex flex-col transition-all duration-200 rounded-xl border border-base-content/5">
       <div className="w-full p-0.5">
@@ -22,21 +35,19 @@ function Sidebar({ teams = [], players = [], category }) {
         </div>
       </div>
       <div className="overflow-y-auto w-full">
-        {(category === "Player" ? players : teams).map((user) => (
+        {list.map((user) => (
           <button
             key={user.id}
             className={`w-full p-3 flex items-center gap-3 hover:bg-base-300 transition-colors justify-start border-b-2 border-b-accent-content/40 ${
-              selectedUser?.id === user.id
-                ? "bg-base-300 ring-1 ring-base-300"
-                : ""
+              selected?.id === user.id ? "bg-base-300 ring-1 ring-base-300" : ""
             }`}
-            onClick={() => setSelectedUser(user)}
+            onClick={() => handleSelect(user)}
           >
             <div className="md:w-20">
               <Image
                 src={user.image}
                 alt={user.name}
-                className="size-13 rounded-full object-cover"
+                className="mask mask-squircle size-13 object-cover border-none"
               />
             </div>
             <div className="hidden lg:block text-left min-w-0 w-full ">
@@ -44,8 +55,8 @@ function Sidebar({ teams = [], players = [], category }) {
                 {user.name}
               </div>
               <div className="flex flex-row justify-between items-center w-full">
-                <span className="flex justify-center items-center gap-0.5 text-sm text-gray-400 font-inter">
-                  <GiTrophy />
+                <span className="flex justify-center items-center gap-1 text-sm text-gray-400 font-inter">
+                  <FaTrophy className="size-3" />
                   {user.sport}
                 </span>
                 <span className="flex justify-center items-center gap-0.5 font-inter text-xs text-gray-400">

@@ -5,7 +5,6 @@ import { IoStatsChart } from "react-icons/io5";
 import { MdSportsBaseball } from "react-icons/md";
 import { GiPayMoney } from "react-icons/gi";
 import Image from "next/image";
-import { useThemeStore } from "./store/useThemestore";
 import SportSection from "./components/SportSection";
 import { useSession } from "next-auth/react";
 import { FaChartPie } from "react-icons/fa";
@@ -14,7 +13,6 @@ import { Vortex } from "@/components/ui/vortex";
 import newsletter from "@/public/newsletter.png";
 import { HoverBorderGradient } from "@/components/ui/bg-gradient";
 export default function Home() {
-  const { theme } = useThemeStore();
   const { data: session } = useSession();
   const features = [
     {
@@ -64,7 +62,6 @@ export default function Home() {
   return (
     <div
       className=" flex flex-col justify-center items-center pt-20"
-      data-theme={theme}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 place-items-center  top-0 p-4 gap-4  h-full">
         <div className="flex flex-col justify-center items-center md:items-start p-4">
@@ -96,9 +93,9 @@ export default function Home() {
                 <HoverBorderGradient
                   containerClassName="rounded-full"
                   as="button"
-                  className=" bg-base-100 text-white  flex items-center justify-center w-40 p-2 "
+                  className=" bg-base-100 text-white  flex items-center justify-center w-40 p-2.5 "
                 >
-                  <span>Key features</span>
+                  <span className="text-sm font-poppins font-medium">Explore Now</span>
                 </HoverBorderGradient>
               </Link>
             ) : (
@@ -106,9 +103,9 @@ export default function Home() {
                 <HoverBorderGradient
                   containerClassName="rounded-full"
                   as="button"
-                  className=" bg-base-100 text-white  flex items-center justify-center w-40 p-2"
+                  className=" bg-base-100 text-white  flex items-center justify-center w-40 p-2.5"
                 >
-                  <span>Key features</span>
+                  <span className="text-sm font-poppins font-medium ">Explore Now</span>
                 </HoverBorderGradient>
               </Link>
             )}
@@ -227,15 +224,15 @@ export default function Home() {
           height={1000}
         ></Image>
         <div className="absolute top-0 h-full w-full flex flex-col justify-center items-center p-5 bg-gradient-to-b from-base-100">
-          <h1 className="text-4xl md:text-5xl font-bold font-inter text-center">
+          <h1 className="text-4xl md:text-5xl font-extrabold font-poppins text-center uppercase">
             Subscribe to Our Newsletter
           </h1>
-          <p className="text-center w-11/12 sm:w-lg lg:w-xl mt-2 text-sm md:text-base font-inter">
+          <p className="text-center w-11/12 sm:w-lg md:w-2xl mt-4 text-sm md:text-base font-inter">
             Welcome to our newsletter hub,where ew bring you the latest
             happenings,exclusive content,and behind the scene insights.
           </p>
-          <div className="join w-11/12 sm:w-lg lg:w-xl flex justify-center mt-4">
-            <input className="input join-item rounded-l-full h-16 w-full focus:outline-0 px-4" placeholder="Email" />
+          <div className="join w-11/12 sm:w-lg lg:w-xl flex justify-center mt-6">
+            <input className="input join-item rounded-l-full h-16 w-full focus:outline-0 px-4" placeholder="Write your email" />
             <button className="btn join-item rounded-r-full h-16 bg-white text-base-300">Subscribe</button>
           </div>
         </div>

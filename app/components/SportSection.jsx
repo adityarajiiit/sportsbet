@@ -27,7 +27,7 @@ import { GiShuttlecock } from "react-icons/gi";
 import { MdOutlineSportsKabaddi } from "react-icons/md";
 import { FaVolleyball } from "react-icons/fa6";
 import { FaBox } from "react-icons/fa";
-import LiveEvent from "./LiveEvents";
+import LiveEvent from "./EventComponents/Events";
 
 function SportSection() {
   const sports = [

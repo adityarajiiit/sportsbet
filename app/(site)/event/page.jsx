@@ -1,12 +1,10 @@
 "use client";
-import LiveEvent from "@/app/components/LiveEvents";
-import { useThemeStore } from "@/app/store/useThemestore";
+import LiveEvent from "@/app/components/EventComponents/Events";
 
 function Event() {
-  const { theme } = useThemeStore();
 
   return (
-    <div className="pt-20" data-theme={theme}>
+    <div className="pt-20">
       <LiveEvent />
      
     </div>
