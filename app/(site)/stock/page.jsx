@@ -10,6 +10,9 @@ import Image from "next/image";
 import { useSelectedUser } from "@/app/store/useSelectedUser.jsx";
 import NoSelected from "@/app/components/NoSelected";
 import PlayerStock from "@/app/components/playerStock";
+import axios from "axios"
+import {useEffect} from "react"
+
 function Stocks() {
   const { selectedUser } = useSelectedUser();
   console.log(selectedUser);

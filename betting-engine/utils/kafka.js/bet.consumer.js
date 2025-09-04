@@ -4,13 +4,13 @@ import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
 import { dirname } from "path"
-import { io } from "@/betting-engine/index.js"
+import { io } from "../../index.js"
 import {PrismaClient} from "@prisma/client"
 import { match } from "assert"
 const prisma=new PrismaClient()
 dotenv.config({path:'../../.env'})
 const filename=fileURLToPath(import.meta.url)
-const dirname=dirname(filename)
+const __dirname=dirname(filename)
 const kafka=new Kafka({
     brokers:[process.env.KAFKA_URI],
     sasl:{
@@ -19,11 +19,11 @@ const kafka=new Kafka({
         password:process.env.KAFKA_PASS
     },
     ssl:{
-        ca:process.env.KAFKA_CERTIFICATE
+         ca:[fs.readFileSync(path.resolve(__dirname,'../../certificates/ca.pem'),'utf-8')]
     }
 })
 const consumer=kafka.consumer({groupId:'betting-consumers'})
-const betsConsumer=async()=>{
+export const betsConsumer=async()=>{
     try{
         await consumer.connect()
         await consumer.subscribe({topics:['betting'],fromBeginning:true})
@@ -78,4 +78,4 @@ const betsConsumer=async()=>{
         setTimeout(betsConsumer,5000)
     }
 }
-await betsConsumer()
+

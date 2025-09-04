@@ -1,4 +1,4 @@
-import { io } from "@/betting-engine/index.js"
+import { io } from "../index.js"
 import { newReminder,snoozeReminder,dismissedReminder } from "../controllers/reminder.controller.js"
 io.on('connection',(socket)=>{
     console.log('a user connected',socket.id)

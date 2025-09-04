@@ -6,7 +6,8 @@ import cron from "node-cron";
 import {PrismaClient} from "@prisma/client"
 
 const prisma=new PrismaClient()
-const upcomingmatchesFetch=async()=>{
+
+export const upcomingmatchesFetch=async()=>{
     try{
         await producer.connect()
         const response=await axios.get(`https://${process.env.APISPORTS_API_HOST}/matches/v1/upcoming`,{
@@ -34,7 +35,8 @@ const upcomingmatchesFetch=async()=>{
                     seriesname:match.matchInfo.seriesName,
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
-                    state:match.matchInfo.state
+                    state:match.matchInfo.state,
+                    matchState:"Upcoming"
                 },
                 create:{
                     title:match.matchInfo.matchDesc,
@@ -49,7 +51,8 @@ const upcomingmatchesFetch=async()=>{
                     seriesname:match.matchInfo.seriesName,
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
-                    state:match.matchInfo.state
+                    state:match.matchInfo.state,
+                    matchState:"Upcoming"
                 }
             })
         }
@@ -58,7 +61,7 @@ const upcomingmatchesFetch=async()=>{
                 topic:'upcoming-matches',
                 messages:[
                     {
-                        key:match.matchInfo.matchId,
+                        key:match.matchInfo.matchId.toString(),
                         value:JSON.stringify(match)
                     }
                 ]
@@ -72,7 +75,7 @@ const upcomingmatchesFetch=async()=>{
     }
 }
 
-const recentmatchesFetch=async()=>{
+export const recentmatchesFetch=async()=>{
     try{
         await producer.connect()
         const response=await axios.get(`https://${process.env.APISPORTS_API_HOST}/matches/v1/recent`,{
@@ -100,7 +103,8 @@ const recentmatchesFetch=async()=>{
                     seriesname:match.matchInfo.seriesName,
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
-                    state:match.matchInfo.state
+                    state:match.matchInfo.state,
+                    matchState:"Recent"
                 },
                 create:{
                     title:match.matchInfo.matchDesc,
@@ -115,7 +119,8 @@ const recentmatchesFetch=async()=>{
                     seriesname:match.matchInfo.seriesName,
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
-                    state:match.matchInfo.state
+                    state:match.matchInfo.state,
+                    matchState:"Recent"
                 }
             })
         }
@@ -124,7 +129,7 @@ const recentmatchesFetch=async()=>{
                 topic:'recent-matches',
                 messages:[
                     {
-                        key:match.matchInfo.matchId,
+                        key:match.matchInfo.matchId.toString(),
                         value:JSON.stringify(match)
                     }
                 ]
@@ -137,7 +142,7 @@ const recentmatchesFetch=async()=>{
         console.log(e.message)
     }
 }
-const livematchesFetch=async()=>{
+export const livematchesFetch=async()=>{
     try{
         await producer.connect()
         const response=await axios.get(`https://${process.env.APISPORTS_API_HOST}/matches/v1/live`,{
@@ -152,7 +157,7 @@ const livematchesFetch=async()=>{
             .flatMap((series)=>series.seriesAdWrapper.matches)
         })
         for(const match of matches){
-            await prisma.match.upsert({
+            const updatematch=await prisma.match.upsert({
                 where:{cricbuzzmatchId:match.matchInfo.matchId},
                 update:{
                     title:match.matchInfo.matchDesc,
@@ -165,7 +170,8 @@ const livematchesFetch=async()=>{
                     seriesname:match.matchInfo.seriesName,
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
-                    state:match.matchInfo.state
+                    state:match.matchInfo.state,
+                    matchState:"Live"
                 },
                 create:{
                     title:match.matchInfo.matchDesc,
@@ -180,16 +186,18 @@ const livematchesFetch=async()=>{
                     seriesname:match.matchInfo.seriesName,
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
-                    state:match.matchInfo.state
+                    state:match.matchInfo.state,
+                    matchState:"Live"
                 }
             })
+            console.log(`live match updated:${JSON.stringify(updatematch)}`)
         }
         for(const match of matches){
             await producer.send({
                 topic:'live-matches',
                 messages:[
                     {
-                        key:match.matchInfo.matchId,
+                        key:match.matchInfo.matchId.toString(),
                         value:JSON.stringify(match)
                     }
                 ]
@@ -203,12 +211,3 @@ const livematchesFetch=async()=>{
     }
 }
 
-cron.schedule(`0 0 * * *`,async()=>{
-    console.log("fetchingg matches")
-    await upcomingmatchesFetch();
-})
-cron.schedule(`*/30 * * * *`,async()=>{
-    console.log("fetching matches")
-    await livematchesFetch();
-    await recentmatchesFetch();
-})

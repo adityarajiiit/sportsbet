@@ -5,6 +5,8 @@ import ScoreCard from "@/public/Score.png";
 import cricket from "@/public/cricket.jpg";
 import { useState } from "react";
 import { FaFlag } from "react-icons/fa";
+import { useEffect } from "react";
+
 import { IoSend } from "react-icons/io5";
 import { useSelectedEvent } from "@/app/store/useSelectedEvent";
 import { Label, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts";
@@ -15,12 +17,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {io} from "socket.io-client";
+import axios from "axios";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
-function EventScore() {
+function EventScore({params}) {
   const [buyamount, setBuyAmount] = useState(0);
   const [buyamount2, setBuyAmount2] = useState(0);
   const [ExitPrice, setExitPrice] = useState(0);
@@ -28,6 +32,29 @@ function EventScore() {
   const { selectedEvent } = useSelectedEvent();
   const event = selectedEvent;
   const chartData = [{ team1: 70, team2: 30 }];
+  const [score,setScore]=useState({})
+  useEffect(()=>{
+    fetchscore()
+    const socket=io("http://localhost:4000")
+    socket.on("connect",()=>{
+      console.log('user connected : ',socket.id)
+      
+    })
+    socket.on("match-update",(data)=>{
+      console.log('match-update : ', data)
+      setScore(data.data)
+    })
+    return()=>{
+      socket.off("connect")
+      socket.off("match-update")
+      socket.disconnect()
+    }
+  },[])
+  const fetchscore=async()=>{
+    const response=await axios.get(`http://localhost:4000/api/others/match/${params.matchid}`)
+    console.log(response.data)
+    setScore(response.data)
+  }
   const chartConfig = {
     team1: {
       label: "IND",
@@ -38,6 +65,7 @@ function EventScore() {
       color: "var(--chart-2)",
     },
   };
+  
   const liveChat = [
     {
       author: "Rajan",

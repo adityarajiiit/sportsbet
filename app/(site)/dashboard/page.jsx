@@ -21,6 +21,10 @@ const dashboard = () => {
   const [withdraw, setWithdraw] = useState(20);
   const session = useSession();
   const { theme, setTheme } = useThemeStore();
+  const handlePayment=async(e)=>{
+    e.preventDefault()
+    
+  }
   if (session.status === "loading") {
     return (
       <div className="mt-20 h-[40rem] w-full flex flex-col justify-center items-center gap-4 text-accent">
@@ -285,7 +289,7 @@ const dashboard = () => {
                         onChange={(e) => setAmount(e.target.value)}
                       />
 
-                      <button className="btn btn-info font-poppins text-base mt-1">
+                      <button className="btn btn-info font-poppins text-base mt-1" onClick={handlePayment}>
                         Add Amount
                       </button>
                     </form>
@@ -390,6 +394,7 @@ const dashboard = () => {
                   <th className="font-poppins font-semibold">S.No</th>
                   <th className="font-poppins font-semibold">Event</th>
                   <th className="font-poppins font-semibold">Date</th>
+
                   <th className="font-poppins font-semibold">Bet</th>
                   <th className="font-poppins font-semibold">Multiplier</th>
                   <th className="font-poppins font-semibold">Payout</th>

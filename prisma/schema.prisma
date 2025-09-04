@@ -85,6 +85,7 @@ model Match{
   status String @default("Upcoming")
   result String?
   scorecard Json?
+  matchState String @default("Upcoming")
   bets Bet[]
   comments Comment[]
   reminders Reminder[]
@@ -127,6 +128,7 @@ model Player{
   battingstyle String?
   bowlingstyle String?
   position Json?
+  teamName String?
   team Team? @relation("teamplayers",fields:[teamId],references:[id],onDelete:Cascade)
   career Json?
   currprice Float @default(50)
@@ -379,7 +381,6 @@ model Order{
   userId String @db.ObjectId
   amount Float
   status orderstatus @default(pending)
-  paymentstatus orderstatus @default(pending)
   paymentinfo Payment[] @relation("orderpayments")
   user User @relation("userorders",fields:[userId],references:[id],onDelete:Cascade)
   createdAt DateTime @default(now())
@@ -387,12 +388,11 @@ model Order{
 }
 model Payment{
   id String @id @default(auto()) @map("_id") @db.ObjectId
+  paymentId BigInt @db.Long
   orderId String @db.ObjectId
-  payercurrency String 
   amount Float
-  paymentamount Float
-  currency String
-  network String
+  status String
+  additionalInfo Json?
   order Order @relation("orderpayments",fields:[orderId],references:[id],onDelete:Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

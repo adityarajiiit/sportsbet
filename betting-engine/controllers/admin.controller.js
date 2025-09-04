@@ -55,6 +55,7 @@ export const newPlayer=async(req,res)=>{
             currprice:data.currprice,
             shares:data.shares,
             matchIds:[],
+            teamName:data.teamName||null
         }
     })
     if(!player){

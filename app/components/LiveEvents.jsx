@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import cricket from "@/public/cricket.jpg";
 import { MdOutlineAllInclusive } from "react-icons/md";
 import { IoIosFootball } from "react-icons/io";
@@ -17,9 +17,37 @@ import { FaBox } from "react-icons/fa";
 import LiveEventcard from "./LiveEventcard";
 import UpcomingEventCard from "./UpcomingEventCard";
 import { useSelectedEvent } from "../store/useSelectedEvent";
-
+import io from "socket.io-client"
+import axios from "axios";
 function LiveEvent() {
+  
   const { selectedEvent, setSelectedEvent } = useSelectedEvent();
+  const [liveevents,setLiveevents]=useState([])
+
+useEffect(()=>{
+      fetchMatches()
+      const socket=io("http://localhost:4000")
+      socket.on("connect",()=>{
+        console.log("connected to socket server")
+      })
+      socket.on('match-update',(data)=>{
+        
+        if(data.topic==="live-matches"){
+          
+          console.log(data)
+        }
+      })
+      return()=>{
+        socket.off('match-update')
+        socket.off('connect')
+        socket.disconnect()
+      }
+    },[])
+    const fetchMatches=async()=>{
+      const response=await axios.get('http://localhost:4000/api/others/livematches')
+      console.log(response.data)
+      setLiveevents(response.data)
+    }
   console.log(selectedEvent);
   const sportFilters = [
     {
@@ -333,7 +361,7 @@ function LiveEvent() {
         },
       ],
       title: "Other",
-    },
+    }
   ];
   const [filter, setFilter] = useState("All");
   const filteredSport = sportFilters.filter((filtered) => {
@@ -387,6 +415,7 @@ function LiveEvent() {
                     image2={event.team2.image}
                     winPercentage1={event.team1.winpercent}
                     winPercentage2={event.team2.winpercent}
+                    matchId={12}
                     handleSelectedUser={() => {
                       setSelectedEvent(event);
                     }}

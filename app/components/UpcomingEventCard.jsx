@@ -1,10 +1,15 @@
 "use client";
-import React from "react";
+import React, { use } from "react";
 import Image from "next/image";
 import { FaBell } from "react-icons/fa";
 import { FaFlag } from "react-icons/fa";
 import { MdEvent } from "react-icons/md";
+import {io} from "socket.io-client";
+import { useState,useEffect } from "react";
+import axios from "axios";
 function UpcomingEventCard({ title, team1, team2, date, image1, image2 }) {
+  
+  
   return (
     <div className="p-5 flex flex-col justify-center items-center bg-base-200 gap-2 rounded-xl border border-neutral-content/5 h-fit">
       <div className="flex justify-between items-center w-full">

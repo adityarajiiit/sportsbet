@@ -16,6 +16,7 @@ function LiveEventcard({
   image1,
   image2,
   handleSelectedUser,
+  matchId
 }) {
   const router = useRouter();
 
@@ -29,7 +30,7 @@ function LiveEventcard({
         <button
           className="font-poppins text-xs p-1 bg-base-content/20 rounded-full px-3 font-semibold flex justify-center items-center gap-1"
           onClick={() => {
-            router.push("/event/score");
+            router.push(`/event/score/${matchId}`);
             handleSelectedUser();
           }}
         >
