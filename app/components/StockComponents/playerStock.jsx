@@ -6,44 +6,17 @@ import { TbCoinRupeeFilled } from "react-icons/tb";
 import { FaUsers } from "react-icons/fa";
 import { TrendingUp } from "lucide-react";
 import { FaInfo } from "react-icons/fa";
-import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
 import { FaFlag } from "react-icons/fa";
-import { FaUser } from "react-icons/fa";
 import { useState } from "react";
 import { BentoGrid, BentoGridItem } from "@/components/ui/bento-grid";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
+
 import coins from "@/public/coins.png";
 import growth from "@/public/gowth.jpg";
 import bar from "@/public/bar.jpg";
 import volume from "@/public/volume.png";
-function PlayerStock({ player, team, category }) {
-  const chartData = [
-    { day: "Sunday", stocks: 500 },
-    { day: "Monday", stocks: 486 },
-    { day: "Tuesday", stocks: 405 },
-    { day: "Wednesday", stocks: 437 },
-    { day: "Thursday", stocks: 173 },
-    { day: "Friday", stocks: 409 },
-    { day: "Saturday", stocks: 414 },
-  ];
-  const chartConfig = {
-    stocks: {
-      label: "Stocks",
-      color: "var(--chart-1)",
-    },
-  };
+import PlayerStats from "./Stats/PlayerStats";
+import TradeChart from "./chart";
+function PlayerStock({ player }) {
   const [noOfStocks, setnoOfStocks] = useState(0);
   const [noOfStocksSell, setnoOfStocksSell] = useState(0);
   const [ExitPrice, setExitPrice] = useState(0);
@@ -89,17 +62,15 @@ function PlayerStock({ player, team, category }) {
         <div className="w-full flex flex-col bg-base-300 p-3 sm:px-6 sm:pt-6 rounded-xl border border-base-content/10 justify-center md:items-start items-center gap-2 py-6">
           <p className="uppercase font-poppins font-bold flex items-center gap-2">
             <FaInfo className="size-6 p-1.5 bg-info-content rounded-full" />
-            {category === "Player" ? "Player" : "Team"} Info
+            Player Info
           </p>
           <div className="flex flex-col md:flex-row gap-4 justify-start md:justify-between items-center  w-full ">
             <div className="flex flex-col sm:flex-row justify-start items-center gap-4 w-full">
-              <div className="p-1  border-2 bg-base-200 border-base-content/20 rounded-full z-1">
-                <Image
-                  src={player.image}
-                  alt="player"
-                  className="h-24 w-24 rounded-full object-cover"
-                ></Image>
-              </div>
+              <Image
+                src={player.image}
+                alt={player.name}
+                className="input size-30 bg-muted-foreground rounded-full object-cover p-1 border-none"
+              />
               <div className="flex-1 flex flex-col justify-center items-center gap-2 w-10/12">
                 <div className="flex flex-col items-center sm:items-start gap-1 w-full">
                   <div className="font-medium font-inter p-2.5 rounded-full bg-base-200 w-full border border-base-content/10 text-sm px-4">
@@ -117,7 +88,7 @@ function PlayerStock({ player, team, category }) {
 
             <div className="flex md:flex-col items-center justify-center md:justify-start gap-2 h-full">
               <button
-                className="btn btn-active btn-info min-w-24 sm:min-w-40 rounded-md"
+                className="btn btn-active btn-info min-w-full sm:min-w-40 rounded-xl"
                 onClick={() => document.getElementById("Buy_stock").showModal()}
               >
                 Buy
@@ -217,7 +188,7 @@ function PlayerStock({ player, team, category }) {
                 </div>
               </dialog>
               <button
-                className="btn btn-outline btn-error min-w-24  sm:min-w-40 rounded-md"
+                className="btn btn-active btn-error min-w-full sm:min-w-40 rounded-xl"
                 onClick={() =>
                   document.getElementById("sell_stocks").showModal()
                 }
@@ -312,17 +283,70 @@ function PlayerStock({ player, team, category }) {
                       />
                     </fieldset>
 
-                    <button
-                      className="btn btn-error font-poppins text-base mt-1"
-                      onClick={() =>
-                        document.getElementById("sell_stocks").showModal()
-                      }
-                    >
+                    <button className="btn btn-error font-poppins border-none text-base mt-1">
                       Sell
                     </button>
                   </form>
                 </div>
               </dialog>
+            </div>
+          </div>
+          <div className="w-full flex flex-col justify-center md:items-start items-center">
+            <p className="text-sm font-poppins font-semibold mt-4">
+              More Information
+            </p>
+            <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-2 mt-2">
+              <fieldset className="fieldset bg-base-200 border-base-content/10 rounded-full w-full border p-3">
+                <legend className="fieldset-legend px-2 font-poppins text-neutral-400 p-0">
+                  Position
+                </legend>
+                <p className="px-3 font-poppins font-medium text-sm">Striker</p>
+              </fieldset>
+              <fieldset className="fieldset bg-base-200 border-base-content/10 rounded-full w-full border p-3">
+                <legend className="fieldset-legend px-2 font-poppins text-neutral-400 p-0">
+                  Gender
+                </legend>
+                <p className="px-3 font-poppins font-medium text-sm">Male</p>
+              </fieldset>
+              {player.sport === "Cricket" ? (
+                <>
+                  <fieldset className="fieldset bg-base-200 border-base-content/10 rounded-full w-full border p-3">
+                    <legend className="fieldset-legend px-2 font-poppins text-neutral-400 p-0">
+                      Team
+                    </legend>
+                    <p className="px-3 font-poppins font-medium text-sm">
+                      Individual
+                    </p>
+                  </fieldset>
+                  <fieldset className="fieldset bg-base-200 border-base-content/10 rounded-full w-full border p-3">
+                    <legend className="fieldset-legend px-2 font-poppins text-neutral-400 p-0">
+                      Country
+                    </legend>
+                    <p className="px-3 font-poppins font-medium text-sm">
+                      England
+                    </p>
+                  </fieldset>
+                </>
+              ) : (
+                <>
+                  <fieldset className="fieldset bg-base-200 border-base-content/10 rounded-full w-full border p-3">
+                    <legend className="fieldset-legend px-2 font-poppins text-neutral-400 p-0">
+                      Team
+                    </legend>
+                    <p className="px-3 font-poppins font-medium text-sm">
+                      Individual
+                    </p>
+                  </fieldset>
+                  <fieldset className="fieldset bg-base-200 border-base-content/10 rounded-full w-full border p-3">
+                    <legend className="fieldset-legend px-2 font-poppins text-neutral-400 p-0">
+                      Country
+                    </legend>
+                    <p className="px-3 font-poppins font-medium text-sm">
+                      England
+                    </p>
+                  </fieldset>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -346,82 +370,9 @@ function PlayerStock({ player, team, category }) {
           </BentoGrid>
         </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 mt-4">
-        <Card className="border-neutral-content/20">
-          <CardHeader>
-            <CardTitle>Live Chart </CardTitle>
-            <CardDescription>Stocks details (1 week)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ChartContainer config={chartConfig}>
-              <LineChart
-                accessibilityLayer
-                data={chartData}
-                margin={{
-                  left: 12,
-                  right: 12,
-                }}
-              >
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="day"
-                  tickLine={false}
-                  axisLine={false}
-                  tickMargin={8}
-                  tickFormatter={(value) => value.slice(0, 3)}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent hideLabel />}
-                />
-                <Line
-                  dataKey="stocks"
-                  type="linear"
-                  stroke="var(--color-stocks)"
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ChartContainer>
-          </CardContent>
-          <CardFooter className="flex-col items-start gap-2 text-sm">
-            <div className="flex gap-2 leading-none font-medium">
-              Showing total fluctuation of this week{" "}
-              <TrendingUp className="h-4 w-4" />
-            </div>
-          </CardFooter>
-        </Card>
-        <Card className="border-base-content/20">
-          <CardHeader>
-            <CardTitle className="text-lg font-poppins">
-              Investment Overview
-            </CardTitle>
-            <p className="text-sm font-inter text-gray-400">
-              Why Invest in {player.name} ?
-            </p>
-            <p className="text-sm font-inter font-normal">
-              {player.description}
-            </p>
-          </CardHeader>
-
-          <CardHeader>
-            <CardTitle className="text-lg font-poppins">
-              Investment Tips Section
-            </CardTitle>
-            <p className="text-sm font-inter text-gray-400">
-              How to Invest in Player Stocks?
-            </p>
-            <CardContent>
-              <ol start="1" className="list-decimal">
-                <li>Bet only what you can afford to lose.</li>
-
-                <li>Check stats before placing bets. </li>
-
-                <li>Set limits and stick to them.</li>
-              </ol>
-            </CardContent>
-          </CardHeader>
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mt-4">
+        <TradeChart />
+        <PlayerStats player={player} />
       </div>
     </div>
   );

@@ -4,3 +4,4 @@
 for 100 tokens(10rs)=https://nowpayments.io/payment/?iid=4845505834
 for 200 tokens(20rs)=https://nowpayments.io/payment/?iid=5918989072
 for 500 tokens(50rs)=https://nowpayments.io/payment/?iid=5720347210
+LiveEvent --> Event

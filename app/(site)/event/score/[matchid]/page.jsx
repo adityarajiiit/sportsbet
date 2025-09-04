@@ -4,12 +4,17 @@ import Image from "next/image";
 import ScoreCard from "@/public/Score.png";
 import cricket from "@/public/cricket.jpg";
 import { useState } from "react";
-import { FaFlag } from "react-icons/fa";
 import { useEffect } from "react";
 
 import { IoSend } from "react-icons/io5";
+import { HoverBorderGradient } from "@/components/ui/bg-gradient";
 import { useSelectedEvent } from "@/app/store/useSelectedEvent";
 import { Label, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts";
+import { FaReply } from "react-icons/fa";
+import { MdCancel } from "react-icons/md";
+import { FaHourglassStart } from "react-icons/fa";
+import { FaHourglassEnd } from "react-icons/fa";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Card,
   CardContent,
@@ -29,6 +34,9 @@ function EventScore({params}) {
   const [buyamount2, setBuyAmount2] = useState(0);
   const [ExitPrice, setExitPrice] = useState(0);
   const [StopLossPrice, setStopLossPrice] = useState(0);
+  const [CommentIndex, setCommentIndex] = useState(null);
+  const [showReplies, setShowReplies] = useState(null);
+  const [replyIndex, setReplyIndex] = useState(null);
   const { selectedEvent } = useSelectedEvent();
   const event = selectedEvent;
   const chartData = [{ team1: 70, team2: 30 }];
@@ -70,17 +78,65 @@ function EventScore({params}) {
     {
       author: "Rajan",
       image: cricket,
+      date: "29 Aug 2025",
       chat: "hello!<div className=lg:p-4 lg:bg-base-300 rounded-xl lg:border border-base-content/20",
+      replies: [
+        {
+          author: "Rajan",
+          image: cricket,
+          date: "29 Aug 2025",
+          chat: "hello!<div className=lg:p-4 lg:bg-base-300 rounded-xl lg:border border-base-content/20",
+        },
+        {
+          author: "Rajan",
+          image: cricket,
+          date: "29 Aug 2025",
+          chat: "hello!<div className=lg:p-4 lg:bg-base-300 rounded-xl lg:border border-base-content/20",
+        },
+      ],
     },
     {
       author: "Rajan",
       image: cricket,
+      date: "29 Aug 2025",
       chat: "hello!",
+      replies: [
+        {
+          author: "Rajan",
+          image: cricket,
+          date: "29 Aug 2025",
+          chat: "hello!<div className=lg:p-4 lg:bg-base-300 rounded-xl lg:border border-base-content/20",
+        },
+      ],
     },
   ];
   console.log(event);
+
   return (
     <div className="p-4 pt-24">
+      <h1 className="uppercase font-inter text-2xl font-bold">
+        Event <span className="text-warning">score</span>
+      </h1>
+      <div className="flex justify-between items-center my-2">
+        <div className="fieldset">
+          <legend className="fieldset-legend font-poppins text-xs py-1">
+            Start Time
+          </legend>
+          <p className="flex items-center gap-1.5 text-xs font-medium font-inter text-neutral-300 h-8 w-fit px-3 input border-none bg-muted-foreground rounded-md">
+            <FaHourglassStart />
+            2025-08-19 14:00
+          </p>
+        </div>
+        <div className="fieldset">
+          <legend className="fieldset-legend font-poppins text-xs py-1">
+            End Time
+          </legend>
+          <p className="flex items-center gap-1.5 text-xs font-medium font-inter text-neutral-300 h-8 w-fit px-3 input border-none bg-muted-foreground rounded-md">
+            <FaHourglassEnd />
+            2025-08-19 17:30
+          </p>
+        </div>
+      </div>
       <div className="lg:p-4 lg:bg-base-300 rounded-xl lg:border border-base-content/20">
         <div className="p-4 flex flex-col justify-center items-center relative gap-2">
           <Image
@@ -91,10 +147,12 @@ function EventScore({params}) {
             height={1000}
           ></Image>
           <div className="flex flex-col sm:p-6 p-1 pt-7 sm:pt-12  w-full md:max-w-5xl gap-2 justify-between h-[14rem] sm:h-[18rem] z-1">
-            <p className="text-sm font-medium font-inter text-center w-full text-accent bg-gradient-to-l from-transparent via-accent-content to-transparent rounded-xl p-0.5 px-3">
-              India vs England test series
-            </p>
-            <div className="flex flex-col gap-2 -mt-1">
+            <div className="flex  justify-between gap-4 items-center">
+              <HoverBorderGradient className="bg-base-100 rounded-full p-1 px-6 w-full">
+                <p className="text-xs font-medium font-poppins text-center w-full">
+                  India vs England test series
+                </p>
+              </HoverBorderGradient>
               <div className="flex justify-between items-center">
                 <div className="flex  justify-center items-center gap-2 font-poppins font-semibold text-xs sm:text-base">
                   <div className="inline-grid *:[grid-area:1/1]">
@@ -104,6 +162,9 @@ function EventScore({params}) {
                   LIVE
                 </div>
               </div>
+            </div>
+
+            <div className="flex flex-col gap-2 -mt-1">
               <div className="flex justify-between items-center gap-2 sm:gap-4">
                 <div className="flex items-center justify-between gap-4 w-full">
                   <div className=" flex gap-3 items-center justify-center">
@@ -117,8 +178,8 @@ function EventScore({params}) {
                     </span>
                   </div>
                   <div
-                    className="p-2 px-3.5 backdrop-blur-lg rounded-full flex items-center justify-center bg-[rgba(67,67,67,0.01)]
-                   shadow-[0px_0px_3px_0px_rgba(248,248,248,0.25)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]"
+                    className="p-2 px-3.5 backdrop-blur-lg rounded-xl flex items-center justify-center bg-[rgba(67,67,67,0.1)]
+                   shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]"
                   >
                     <p className="text-base sm:text-xl lg:text-2xl font-black font-inter">
                       300/10
@@ -130,8 +191,8 @@ function EventScore({params}) {
                 </div>
                 <div className="flex items-center justify-between gap-4 w-full">
                   <div
-                    className="p-2 px-3.5 backdrop-blur-lg rounded-full flex items-center justify-center bg-[rgba(67,67,67,0.01)]
-                   shadow-[0px_0px_3px_0px_rgba(248,248,248,0.25)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]"
+                    className="p-2 px-3.5 backdrop-blur-lg rounded-xl flex items-center justify-center bg-[rgba(67,67,67,0.1)]
+                   shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]"
                   >
                     <p className="text-base sm:text-xl lg:text-2xl font-black font-inter">
                       300/10
@@ -150,22 +211,15 @@ function EventScore({params}) {
                   </div>
                 </div>
               </div>
+
+              <p className="text-center font-medium font-inter text-sm">
+                Cazaly's Stadium
+              </p>
+              <p className="text-center font-medium font-inter text-xs -mt-2 text-neutral-300">
+                Match starts at Aug 19, 04:30 GMT
+              </p>
             </div>
             <div className="relative lg:max-w-5xl flex flex-col gap-2.5">
-              <div className="flex justify-between items-center gap-4 w-full ">
-                <div
-                  className="h-8 sm:h-10 w-12 sm:w-16 backdrop-blur-lg rounded-lg flex items-center justify-center bg-[rgba(248,248,248,0.01)]
-                   shadow-[0px_0px_8px_0px_rgba(248,248,248,0.25)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]"
-                >
-                  <p className="text-xs font-medium font-inter">x 1.2</p>
-                </div>
-                <div
-                  className="h-8 sm:h-10 w-12 sm:w-16 backdrop-blur-lg rounded-lg flex items-center justify-center bg-[rgba(248,248,248,0.01)]
-                   shadow-[0px_0px_8px_0px_rgba(248,248,248,0.25)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]"
-                >
-                  <p className="text-xs font-medium font-inter">x 0.8</p>
-                </div>
-              </div>
               <div className="flex justify-center items-center gap-4 w-full relative ">
                 <div className="w-full">
                   <button
@@ -174,7 +228,7 @@ function EventScore({params}) {
                       document.getElementById("my_modal_3").showModal()
                     }
                   >
-                    IND
+                    IND <span className="font-poppins font-bold">x1.2</span>
                   </button>
                   <dialog id="my_modal_3" className="modal">
                     <div className="modal-box">
@@ -279,7 +333,7 @@ function EventScore({params}) {
                       document.getElementById("my_modal_1").showModal()
                     }
                   >
-                    ENG
+                    ENG<span className="font-poppins font-bold">x0.8</span>
                   </button>
                   <dialog id="my_modal_1" className="modal">
                     <div className="modal-box">
@@ -474,29 +528,174 @@ function EventScore({params}) {
 
         <div className="h-full w-full border border-base-content/10 rounded-xl">
           <div className="p-3 border-b border-base-content/10">
-            <div className="flex  justify-start items-center gap-2 font-poppins font-medium text-sm">
-              <div className="inline-grid *:[grid-area:1/1]">
-                <div className="status status-success animate-ping"></div>
-                <div className="status status-success"></div>
-              </div>{" "}
-              LIVE CHAT
-            </div>
+            <p className="font-poppins text-sm font-semibold">Comments()</p>
           </div>
           <div className="min-h-96 p-3 overflow-y-auto flex flex-col gap-1">
             {liveChat.map((chat, index) => {
+              const isReplying = CommentIndex === index;
               return (
                 <div key={index} className="p-1 flex items-start gap-3 w-full">
                   <Image
                     src={chat.image}
                     className="size-6 rounded-full object-cover"
-                    alt={chat.chat}
+                    alt={chat.image}
                   />
-                  <p className="text-sm font-inter text-neutral-400 mt-0.5 font-medium">
-                    {chat.author}{" "}
-                    <span className="font-inter text-sm text-base-content font-normal">
+                  <div className="flex flex-col items-start justify-center w-full">
+                    <p className="text-sm font-inter text-neutral-300  font-medium">
+                      {chat.author}{" "}
+                      <span className="font-inter text-xs text-neutral-400 font-normal ml-1">
+                        {chat.date}
+                      </span>
+                    </p>
+                    <p className="font-inter text-sm font-normal">
                       {chat.chat}
-                    </span>
-                  </p>
+                    </p>
+                    <div className="mt-1 flex justify-center items-center gap-4">
+                      <button
+                        className="text-xs font-poppins text-info flex items-center gap-1 relative h-6"
+                        onClick={() =>
+                          setCommentIndex(isReplying ? null : index)
+                        }
+                      >
+                        <AnimatePresence mode="wait" initial={false}>
+                          {isReplying ? (
+                            <motion.span
+                              key="cancel"
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 5 }}
+                              transition={{ duration: 0.25 }}
+                              className="flex items-center gap-1 "
+                            >
+                              <MdCancel /> Cancel
+                            </motion.span>
+                          ) : (
+                            <motion.span
+                              key="reply"
+                              initial={{ opacity: 0, y: -5 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: 5 }}
+                              transition={{ duration: 0.25 }}
+                              className="flex items-center gap-1 "
+                            >
+                              <FaReply /> Reply
+                            </motion.span>
+                          )}
+                        </AnimatePresence>
+                      </button>
+                      {chat.replies ? (
+                        showReplies === index ? (
+                          <p
+                            className="relative text-xs font-poppins text-neutral-300"
+                            onClick={() => setShowReplies(null)}
+                          >
+                            Show less replies
+                          </p>
+                        ) : (
+                          <p
+                            className="relative text-xs font-poppins text-neutral-300"
+                            onClick={() => setShowReplies(index)}
+                          >
+                            Show all replies
+                          </p>
+                        )
+                      ) : (
+                        ""
+                      )}
+                    </div>
+
+                    {CommentIndex === index && (
+                      <form action="" className="w-full mt-2">
+                        <div className="join w-full">
+                          <input
+                            type="text"
+                            className="input join-item w-full"
+                            placeholder="Type your commnet here"
+                          />
+                          <button className="btn join-item bg-white text-black">
+                            <IoSend />
+                          </button>
+                        </div>
+                      </form>
+                    )}
+                    {showReplies === index &&
+                      chat.replies &&
+                      chat.replies.map((reply, replyIdx) => {
+                        return (
+                          <div
+                            key={replyIdx}
+                            className="p-1 flex items-start gap-3 w-full mt-2"
+                          >
+                            <Image
+                              src={reply.image}
+                              className="size-6 rounded-full object-cover"
+                              alt={reply.image}
+                            />
+                            <div className="flex flex-col items-start justify-center w-full">
+                              <p className="text-sm font-inter text-neutral-300  font-medium">
+                                {reply.author}{" "}
+                                <span className="font-inter text-xs text-neutral-400 font-normal ml-1">
+                                  {reply.date}
+                                </span>
+                              </p>
+                              <p className="font-inter text-sm font-normal">
+                                {reply.chat}
+                              </p>
+                              <div className="mt-1 flex flex-col justify-center items-start w-full">
+                                <button
+                                  className="text-xs font-poppins text-info flex items-center gap-1 relative h-6"
+                                  onClick={() =>
+                                    setReplyIndex(
+                                      replyIndex === replyIdx ? null : replyIdx
+                                    )
+                                  }
+                                >
+                                  <AnimatePresence mode="wait" initial={false}>
+                                    {replyIndex === replyIdx ? (
+                                      <motion.span
+                                        key="cancel"
+                                        initial={{ opacity: 0, y: -5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 5 }}
+                                        transition={{ duration: 0.25 }}
+                                        className="flex items-center gap-1 "
+                                      >
+                                        <MdCancel /> Cancel
+                                      </motion.span>
+                                    ) : (
+                                      <motion.span
+                                        key="reply"
+                                        initial={{ opacity: 0, y: -5 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: 5 }}
+                                        transition={{ duration: 0.25 }}
+                                        className="flex items-center gap-1 "
+                                      >
+                                        <FaReply /> Reply
+                                      </motion.span>
+                                    )}
+                                  </AnimatePresence>
+                                </button>
+                                {replyIndex === replyIdx && (
+                                  <form action="" className="w-full mt-1">
+                                    <div className="join w-full">
+                                      <input
+                                        type="text"
+                                        className="input join-item w-full"
+                                        placeholder="Type your commnet here"
+                                      />
+                                      <button className="btn join-item bg-white text-black">
+                                        <IoSend />
+                                      </button>
+                                    </div>
+                                  </form>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
                 </div>
               );
             })}

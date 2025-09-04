@@ -1,4 +1,5 @@
 "use client";
+import LiveEvent from "@/app/components/EventComponents/Events";
 import LiveEvent from "@/app/components/LiveEvents";
 import { useThemeStore } from "@/app/store/useThemestore";
 import { useState,useEffect } from "react";
@@ -41,7 +42,7 @@ useEffect(()=>{
       setLiveevents(response.data)
     }
   return (
-    <div className="pt-20" data-theme={theme}>
+    <div className="pt-20">
       <LiveEvent />
      
     </div>

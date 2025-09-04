@@ -1,9 +1,18 @@
 "use client";
-import { Geist, Geist_Mono, Goldman, Inter,Poppins,Anton_SC} from "next/font/google";
+import {
+  Geist,
+  Geist_Mono,
+  Goldman,
+  Inter,
+  Poppins,
+  Anton_SC,
+} from "next/font/google";
 import "./globals.css";
 import Provider from "./context/AuthContext";
 import Navbar from "./components/navbar";
 import { SessionProvider } from "next-auth/react";
+import { useThemeStore } from "./store/useThemestore";
+import { useEffect } from "react";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -36,9 +45,14 @@ const poppins = Poppins({
   weight: ["100", "200", "300", "400", "500", "600", "700", "800", "900"],
 });
 export default function RootLayout({ children }) {
-  
+  const hydrateTheme = useThemeStore((state) => state.hydrateTheme);
+  const theme = useThemeStore((state) => state.theme);
+  useEffect(() => {
+    hydrateTheme(); 
+  }, [hydrateTheme]);
+
   return (
-    <html lang="en">
+    <html lang="en" data-theme={theme}>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${goldman.variable} ${inter.variable} ${poppins.variable} ${anton.variable} antialiased`}
       >

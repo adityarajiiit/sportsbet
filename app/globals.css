@@ -58,7 +58,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --muted: #00ADB5;
-    --muted-foreground: #393E46;
+    --muted-foreground: #32363d;
     --warning: #BEF264;
     --chart-1: oklch(0.646 0.222 41.116);
     --chart-2: oklch(0.6 0.118 184.704);
@@ -79,6 +79,15 @@
   --chart-4: oklch(0.627 0.265 303.9);
   --chart-5: oklch(0.645 0.246 16.439);
   --radius: 0.625rem;
+}
+.no-visible-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.no-visible-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
 @layer base {
