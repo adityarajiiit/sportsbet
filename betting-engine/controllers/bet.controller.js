@@ -1,12 +1,13 @@
 import dotenv from 'dotenv'
 dotenv.config({path:'../../.env'})
 import {PrismaClient} from "@prisma/client"
-
+import { inngest } from '../inngest/inngest.js'
 const prisma=new PrismaClient()
 import { producer } from "../utils/kafka.js/producer.js";
 const newBet=async(req,res)=>{
     try{
      const userId=req.userId
+     console.log(userId)
 const user=await prisma.user.findUnique({
     where:{
         id:userId
@@ -15,25 +16,28 @@ const user=await prisma.user.findUnique({
      if(!user){
         return res.json({error:"No user"})
      }
-      const data=req.body;
+      const data=req.body
+      console.log(data)
       const bet=await prisma.bet.create({
         data:{
             userId:user.id,
             matchId:data.matchId,
             details:data.details,
-            amount:data.amount,
-            odds:data.odds,
+            amount:parseFloat(data.amount),
+            odds:parseFloat(data.odds),
             status:data.status,
             type:data.type,
             matchbetId:data.matchbetId,
             matchoutcomeId:data.matchoutcomeId,
         }
       })
+      console.log(bet)
       if(!bet){
         return res.json({error:"bet not created"})
       }
+      
       await producer.connect()
-      await producer.send({
+      const result=await producer.send({
         topic:'betting',
         messages:[
             {
@@ -42,8 +46,14 @@ const user=await prisma.user.findUnique({
             }
         ]
       })
+      await inngest.send({
+        name:"bet.alerts",
+        data:bet
+      })
       await producer.disconnect()
+
       return res.json({bet})
+
     }
     catch(e){
        return res.status(500).json({error:e.message})
@@ -186,6 +196,10 @@ await producer.connect()
 await producer.send({topic:'betting',
     messages:[{key:bet.id,value:JSON.stringify(bet)}]
 })
+await inngest.send({
+    name:"bet.alerts",
+    data:bet
+})
 await producer.disconnect()
 return res.json({bet})
     }
@@ -248,6 +262,10 @@ const user=await prisma.user.findUnique({
         await producer.send({
             topic:'betting',
             messages:[{key:soldbet.id,value:JSON.stringify(soldbet)}]
+        })
+        await inngest.send({
+            name:"bet.alerts",
+            data:soldbet
         })
         await producer.disconnect()
         return res.json({soldbet})

@@ -7,11 +7,9 @@ import { MdEvent } from "react-icons/md";
 import {io} from "socket.io-client";
 import { useState,useEffect } from "react";
 import axios from "axios";
-function UpcomingEventCard({ title, team1, team2, date, image1, image2 }) {
-  
-  
+function UpcomingEventCard({ title, team1, team2,  image1, image2, matchId,status,date }) {
   return (
-    <div className="p-5 flex flex-col justify-center items-center bg-base-200 gap-2 rounded-xl border border-neutral-content/5 h-fit">
+    <div className="p-5 flex flex-col justify-center items-center bg-base-200 gap-2 rounded-xl border border-neutral-content/5 h-[205px]">
       <div className="flex justify-between items-center w-full">
         <h1 className="font-medium text-sm font-poppins text-neutral-200 flex gap-2 justify-center items-center">
           <FaFlag className="size-3.5"/>
@@ -48,6 +46,9 @@ function UpcomingEventCard({ title, team1, team2, date, image1, image2 }) {
       <button className="btn rounded-full btn-warning w-full mt-2">
         <FaBell /> Notify Me
       </button>
+      <div className="w-full flex justify-center items-center mt-2">
+        <p>{status}</p>
+      </div>
     </div>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 import LiveEvent from "@/app/components/EventComponents/Events";
-import LiveEvent from "@/app/components/LiveEvents";
 import { useThemeStore } from "@/app/store/useThemestore";
 import { useState,useEffect } from "react";
 import { io } from "socket.io-client"
@@ -42,6 +41,7 @@ useEffect(()=>{
       setLiveevents(response.data)
     }
   return (
+    
     <div className="pt-20">
       <LiveEvent />
      

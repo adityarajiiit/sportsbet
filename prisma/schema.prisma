@@ -24,9 +24,9 @@ model User{
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   accounts Account[]
-  stockholders Stockholder[]
-  bets Bet[]
-  stockTransactions StockTransaction[]
+  stockholders Stockholder[] @relation("stockuser")
+  bets Bet[] @relation("userbets")
+  stockTransactions StockTransaction[] @relation("stocktransuser")
   alerts Alert[]
   reminders Reminder[]
   comments Comment[]
@@ -86,7 +86,7 @@ model Match{
   result String?
   scorecard Json?
   matchState String @default("Upcoming")
-  bets Bet[]
+  bets Bet[] @relation("betmatch")
   comments Comment[]
   reminders Reminder[]
   teams Team[] @relation("matchteams",references:[id],fields:[teamIds])
@@ -113,8 +113,7 @@ model Team{
   comments Comment[]
   stockholders Stockholder[]
   stocktrans StockTransaction[]
-  matchbetoutcomes Matchbetoutcomes[]
-  stock Stock[]
+  stock Stock[] @relation("teamstock")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([name])
@@ -137,11 +136,11 @@ model Player{
   gender String?
   matchIds String[] @db.ObjectId
   matches Match[] @relation("matchplayers",references:[id],fields:[matchIds])
-  stocktrans StockTransaction[]
-  stockholders Stockholder[]
+  stocktrans StockTransaction[] 
+  stockholders Stockholder[] 
   reminders Reminder[]
   comments Comment[]
-  stock Stock[]
+  stock Stock[] @relation("playerstock")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([name])
@@ -159,8 +158,9 @@ model Stock{
   teamId String? @db.ObjectId
   stockholders Stockholder[] @relation("stockholderslist")
   stockTransactions StockTransaction[] @relation("stocktranslist")
-  player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
-  team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
+  player Player? @relation("playerstock",fields:[playerId],references:[id],onDelete:Cascade)
+  team Team? @relation("teamstock",fields:[teamId],references:[id],onDelete:Cascade)
+  nameEmbedding Float[]
   name String
   price Float
   shares Int
@@ -181,7 +181,7 @@ model StockTransaction{
   price Float
   shares Int
   total Float
-  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  user User @relation("stocktransuser",fields:[userId],references:[id],onDelete:Cascade)
   player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
   team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
   stockholderId String @db.ObjectId
@@ -208,13 +208,12 @@ model Stockholder{
   stockId String @db.ObjectId
   stock Stock @relation("stockholderslist",fields:[stockId],references:[id],onDelete:Cascade)
   transactions StockTransaction[] @relation("stocktrans")
-  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  user User @relation("stockuser",fields:[userId],references:[id],onDelete:Cascade)
   player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
   team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
   alerts Alert[] @relation("stockholderalerts")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@unique([userId,playerId,teamId])
   @@index([playerId])
   @@index([teamId])
   @@index([userId])
@@ -236,8 +235,9 @@ model Bet{
   alerts Alert[] @relation("betalerts")
   matchoutcomeId String? @db.ObjectId
   matchoutcome Matchbetoutcomes? @relation("matchbetoutcomes",fields:[matchoutcomeId],references:[id],onDelete:Cascade)
-  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
-  match Match @relation(fields:[matchId],references:[id],onDelete:Cascade)
+  user User @relation("userbets",fields:[userId],references:[id],onDelete:Cascade)
+  match Match @relation("betmatch",fields:[matchId],references:[id],onDelete:Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([userId])
@@ -322,6 +322,7 @@ enum notificationtype{
 model Comment{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   pagetype pagetype
+  replyto String? 
   userId String @db.ObjectId
   matchId String? @db.ObjectId
   playerId String? @db.ObjectId
@@ -344,28 +345,27 @@ model Comment{
 
 model Matchbet{
   id String @id @default(auto()) @map("_id") @db.ObjectId
-  matchId String @db.ObjectId
+  matchId String @unique @db.ObjectId
   title String
   bets Bet[] @relation("matchbets")
   status String @default("Upcoming")
   outcomes Matchbetoutcomes[] @relation("spotbetoutcomes")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([matchId])
 }
 model Matchbetoutcomes{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   matchbetId String @db.ObjectId
-  teamId String @db.ObjectId
+  teamId Int
+  teamname String
   odds Float
   total Float
   bets Bet[] @relation("matchbetoutcomes")
   matchbet Matchbet @relation("spotbetoutcomes",fields:[matchbetId],references:[id],onDelete:Cascade)
-  team Team @relation(fields:[teamId],references:[id],onDelete:Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([matchbetId])
   @@index([teamId])
+  @@index([matchbetId])
   @@unique([matchbetId,teamId])
 }
 model Wallet{

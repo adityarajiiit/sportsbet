@@ -23,6 +23,9 @@ import { matchfetch } from './utils/kafka.js/consumer.js';
 import { stockConsumer } from './utils/kafka.js/stock.consumer.js';
 import { upcomingmatchesFetch,recentmatchesFetch,livematchesFetch } from './utils/kafka.js/matchfetch.js';
 import cryptoRoutes from './routes/crypto.routes.js';
+import {socketfunction} from './services/socket.js'
+import cookieParser from 'cookie-parser';
+
 const app=express()
 app.use(express.json())
 const server=createServer(app)
@@ -33,6 +36,7 @@ const io=new Server(server,{
         credentials:true
     }
 })
+await socketfunction(io)
 await betsConsumer()
 await matchfetch()
 await stockConsumer()
@@ -43,6 +47,7 @@ app.use(cors({
     methods: ['GET', 'POST'],
     credentials: true
 }));
+app.use(cookieParser())
 app.use(express.static('public'))
 app.use('/api/others',otherRoutes)
 app.use('/api/admin',adminRoutes)
@@ -60,12 +65,12 @@ app.use('/api/inngest',serve({
 }))
 cron.schedule(`0 0 * * *`,async()=>{
     console.log("fetchingg matches")
-    await upcomingmatchesFetch();
+    await upcomingmatchesFetch()
 })
 cron.schedule(`*/30 * * * *`,async()=>{
     console.log("fetching matches")
-    await livematchesFetch();
-    await recentmatchesFetch();
+    await livematchesFetch()
+    await recentmatchesFetch()
 })
 
 app.get('/',(req,res)=>{

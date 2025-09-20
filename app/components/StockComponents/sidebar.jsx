@@ -47,6 +47,8 @@ function Sidebar({ teams = [], players = [], category }) {
               <Image
                 src={user.image}
                 alt={user.name}
+                width={400}
+                height={400}
                 className="mask mask-squircle size-13 object-cover border-none"
               />
             </div>

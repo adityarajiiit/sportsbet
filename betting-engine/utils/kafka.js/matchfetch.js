@@ -22,7 +22,7 @@ export const upcomingmatchesFetch=async()=>{
             .flatMap((series)=>series.seriesAdWrapper.matches)
         })
         for(const match of matches){
-            await prisma.match.upsert({
+            const newMatch=await prisma.match.upsert({
                 where:{cricbuzzmatchId:match.matchInfo.matchId},
                 update:{
                     title:match.matchInfo.matchDesc,
@@ -36,7 +36,8 @@ export const upcomingmatchesFetch=async()=>{
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
                     state:match.matchInfo.state,
-                    matchState:"Upcoming"
+                    matchState:"Upcoming",
+                    scorecard:match.matchScore
                 },
                 create:{
                     title:match.matchInfo.matchDesc,
@@ -52,8 +53,21 @@ export const upcomingmatchesFetch=async()=>{
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
                     state:match.matchInfo.state,
-                    matchState:"Upcoming"
+                    matchState:"Upcoming",
+                    scorecard:match.matchScore
                 }
+            })
+            
+        }
+        for(const match of matches){
+            await producer.send({
+                topic:'upcoming-matches',
+                messages:[
+                    {
+                        key:match.matchInfo.matchId.toString(),
+                        value:JSON.stringify(match)
+                    }
+                ]
             })
         }
         for(const match of matches){
@@ -90,7 +104,7 @@ export const recentmatchesFetch=async()=>{
             .flatMap((series)=>series.seriesAdWrapper.matches)
         })
         for(const match of matches){
-            await prisma.match.upsert({
+            const newMatch=await prisma.match.upsert({
                 where:{cricbuzzmatchId:match.matchInfo.matchId},
                 update:{
                     title:match.matchInfo.matchDesc,
@@ -104,7 +118,8 @@ export const recentmatchesFetch=async()=>{
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
                     state:match.matchInfo.state,
-                    matchState:"Recent"
+                    matchState:"Recent",
+                    scorecard:match.matchScore
                 },
                 create:{
                     title:match.matchInfo.matchDesc,
@@ -120,9 +135,11 @@ export const recentmatchesFetch=async()=>{
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
                     state:match.matchInfo.state,
-                    matchState:"Recent"
+                    matchState:"Recent",
+                    scorecard:match.matchScore
                 }
             })
+            
         }
         for(const match of matches){
             await producer.send({
@@ -156,6 +173,7 @@ export const livematchesFetch=async()=>{
             return matchtype.seriesMatches.filter((series)=>series.seriesAdWrapper)
             .flatMap((series)=>series.seriesAdWrapper.matches)
         })
+        
         for(const match of matches){
             const updatematch=await prisma.match.upsert({
                 where:{cricbuzzmatchId:match.matchInfo.matchId},
@@ -171,7 +189,8 @@ export const livematchesFetch=async()=>{
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
                     state:match.matchInfo.state,
-                    matchState:"Live"
+                    matchState:"Live",
+                    scorecard:match.matchScore
                 },
                 create:{
                     title:match.matchInfo.matchDesc,
@@ -187,10 +206,12 @@ export const livematchesFetch=async()=>{
                     cricbuzzseriesId:match.matchInfo.seriesId,
                     status:match.matchInfo.status,
                     state:match.matchInfo.state,
-                    matchState:"Live"
+                    matchState:"Live",
+                    scorecard:match.matchScore
                 }
+
             })
-            console.log(`live match updated:${JSON.stringify(updatematch)}`)
+            
         }
         for(const match of matches){
             await producer.send({

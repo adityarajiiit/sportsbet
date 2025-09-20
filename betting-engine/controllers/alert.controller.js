@@ -8,6 +8,7 @@ const prisma=new PrismaClient()
 const newAlert=async(req,res)=>{
     try{
     const userId=req.userId
+    console.log(userId)
     const user=await prisma.user.findUnique({
         where:{id:userId}
     })
@@ -15,6 +16,7 @@ const newAlert=async(req,res)=>{
         return res.json({error:"not a user"})
     }
     const data=req.body
+    console.log(data)
     const alert=await prisma.alert.create({
         data:{
             userId:user.id,
@@ -25,6 +27,8 @@ const newAlert=async(req,res)=>{
             status:"alertcreated"
         }
     })
+    console.log(alert)
+
     if(!alert){
         return res.json({error:"alert not created"})
     }

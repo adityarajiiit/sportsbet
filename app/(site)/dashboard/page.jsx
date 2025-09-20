@@ -1,6 +1,6 @@
 "use client";
 import { useSession } from "next-auth/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { FaUser } from "react-icons/fa";
 import { MdEmail } from "react-icons/md";
@@ -8,6 +8,7 @@ import { HiCalendarDateRange } from "react-icons/hi2";
 import { SiReactivex } from "react-icons/si";
 import { GiCardAceSpades } from "react-icons/gi";
 import { GiProfit } from "react-icons/gi";
+import { useRouter } from "next/navigation";
 import { MdSavings } from "react-icons/md";
 import { FaBitcoin } from "react-icons/fa";
 import { BiSolidNetworkChart } from "react-icons/bi";
@@ -17,14 +18,49 @@ import { MdAddCard } from "react-icons/md";
 import { GiTrophy } from "react-icons/gi";
 import { useThemeStore } from "@/app/store/useThemestore.jsx";
 import { Tabs } from "@/components/ui/tab";
+import axios from 'axios'
 const dashboard = () => {
-  const [amount, setAmount] = useState(20);
-  const [withdraw, setWithdraw] = useState(20);
+  const [amount, setAmount] = useState(0.01);
+  const [withdraw, setWithdraw] = useState(0.01);
   const session = useSession();
   const { theme, setTheme } = useThemeStore();
+  const [user,setUser]=useState({})
+  const router=useRouter()
   const handlePayment=async(e)=>{
-    e.preventDefault()
-    
+    e.preventDefault();
+    const response=await axios.post("http://localhost:4000/api/crypto/order",{
+      amount:parseFloat(amount)
+    },
+  {
+    withCredentials:true
+  })
+    console.log(amount)
+    router.push(response.data.url)
+    console.log(response.data)
+  }
+  const handleWithdraw=async(e)=>{
+    e.preventDefault();
+    // Add your withdraw API logic here, e.g.:
+    // const response=await axios.post("http://localhost:4000/api/crypto/withdraw",{
+    //   amount:parseFloat(withdraw)
+    // },
+    // {
+    //   withCredentials:true
+    // })
+    // console.log(withdraw)
+    // console.log(response.data)
+    // Implement actual withdraw handling as needed
+  }
+  useEffect(()=>
+    {
+    getUsers()
+  },[])
+  const getUsers=async()=>{
+    const response=await axios.get('http://localhost:4000/api/others/getuser',{
+      withCredentials:true
+    })
+    console.log(response.data)
+    setUser(response.data)
   }
   if (session.status === "loading") {
     return (
@@ -40,97 +76,48 @@ const dashboard = () => {
       icon: (
         <GiCardAceSpades className="size-6 p-1 rounded-xl bg-warning/10 fill-warning" />
       ),
-      value: 30,
+      value: user?.betscount,
     },
     {
       name: "Profits",
       icon: (
         <GiProfit className="size-6 p-1 rounded-xl bg-warning/10 fill-warning" />
       ),
-      value: "₹" + 30,
-    },
-    {
-      name: "Savings",
-      icon: (
-        <MdSavings className="size-6 p-1 rounded-xl bg-warning/10 fill-warning" />
-      ),
-      value: "₹" + 30,
+      value: "$" + user?.profitamount,
     },
     {
       name: "Player Stocks",
       icon: (
         <MdSavings className="size-6 p-1 rounded-xl bg-warning/10 fill-warning" />
       ),
-      value: 30,
+      value: user?.playerstockcount,
     },
     {
       name: "Team Stocks",
       icon: (
         <MdSavings className="size-6 p-1 rounded-xl bg-warning/10 fill-warning" />
       ),
-      value: 30,
+      value: user?.teamstockscount,
     },
   ];
-  const TableDatas = [
-    {
-      event: "IND VS NZ",
-      date: "25 july 2025",
-      bet: "$25",
-      multiplier: "x1.2",
-      payout: "$30",
-    },
-    {
-      event: "IND VS NZ",
-      date: "25 july 2025",
-      bet: "$25",
-      multiplier: "x1.2",
-      payout: "$30",
-    },
-    {
-      event: "IND VS NZ",
-      date: "25 july 2025",
-      bet: "$25",
-      multiplier: "x1.2",
-      payout: "$30",
-    },
-    {
-      event: "IND VS NZ",
-      date: "25 july 2025",
-      bet: "$25",
-      multiplier: "x1.2",
-      payout: "$30",
-    },
-  ];
-  const TradeData = [
-    {
-      stock: "Robert Doe",
-      category: "Player",
-      price: "500",
-      PriceChange: "-1.24",
-      payout: "498",
-    },
-    {
-      stock: "Robert Doe",
-      category: "Player",
-      price: "500",
-      PriceChange: "-1.24",
-      payout: "498",
-    },
-    {
-      stock: "Robert Doe",
-      category: "Player",
-      price: "500",
-      PriceChange: "-1.24",
-      payout: "498",
-    },
-    {
-      stock: "Robert Doe",
-      category: "Player",
-      price: "500",
-      PriceChange: "-1.24",
-      payout: "498",
-    },
-  ];
+  const TableDatas=user?.bets?.map((bet)=>{
+    return{
+      event:bet?.match?.title,
+      date:new Date(bet?.match?.start).toDateString(),
+      bet:bet?.amount,
+      multiplier:bet?.odds,
+      payout:"not yet"
+    }
+  })
+  const TradeData=user?.stockTransactions?.map((stock)=>{
+    return{
+      stock:stock?.stock?.name,
+      category:stock?.stock?.pagetype,
+      price:stock?.price.toFixed(2),
+      PriceChange:(stock?.price-stock?.stock?.price).toFixed(2),
+      payout:"not yet"
+    }
+  })
   const tabs = [
     {
       title: "Personalisation",
@@ -183,7 +170,7 @@ const dashboard = () => {
           <p className="text-sm font-inter text-gray-300 w-4/6">
             Add balance and withdraw your existing savings.
           </p>
-          <h1 className="text-3xl font-semibold font-inter mt-2">₹30</h1>
+          <h1 className="text-3xl font-semibold font-inter mt-2">$30</h1>
           <span className="text-sm font-poppins font-light text-neutral-400">
             Balance
           </span>
@@ -204,10 +191,11 @@ const dashboard = () => {
                     Deposit
                   </p>
                   <span className="text-lg -mt-0.5 font-semibold font-inter">
-                    ₹0
+                    $0
                   </span>
                 </div>
               </div>
+
 
               <button
                 className="btn btn-active bg-white text-black border-[#e5e5e5] rounded-xl font-inter w-30"
@@ -228,13 +216,14 @@ const dashboard = () => {
                     Press ESC key or click on ✕ button to close
                   </p>
 
+
                   <div className=" mt-2 bg-base-300 rounded-lg p-2">
                     <div className="bg-base-100 border-base-300 p-6">
                       <p className="text-base font-poppins font-semibold">
                         Enter Amount
                       </p>
                       <p className="text-xs font-poppins">
-                        minimum amount : ₹30
+                        minimum amount : $0.01
                       </p>
                       <form
                         action=""
@@ -242,14 +231,17 @@ const dashboard = () => {
                       >
                         <input
                           type="number"
-                          min={20}
-                          max="100"
+                          min="0.01"
+                          max="2"
                           className="input input-info w-full"
                           value={amount}
-                          onChange={(e) => setAmount(e.target.value)}
+                          onChange={(e)=>setAmount(e.target.value)}
                         />
 
-                        <button className="btn btn-info font-poppins text-base mt-1">
+
+                        <button className="btn btn-info font-poppins text-base mt-1"
+                        onClick={handlePayment}
+                        >
                           Add Amount
                         </button>
                       </form>
@@ -274,10 +266,11 @@ const dashboard = () => {
                     Winnings
                   </p>
                   <span className="text-lg -mt-0.5 font-semibold font-inter">
-                    ₹30
+                    $30
                   </span>
                 </div>
               </div>
+
 
               <button
                 className="btn btn-active bg-white text-black border-[#e5e5e5] rounded-xl font-inter w-30"
@@ -296,13 +289,14 @@ const dashboard = () => {
                     Press ESC key or click on ✕ button to close
                   </p>
 
+
                   <div className=" mt-2 bg-base-300 rounded-lg p-2">
                     <div className="bg-base-100 border-base-300 p-6">
                       <p className="text-base font-poppins font-semibold">
                         Enter Amount
                       </p>
                       <p className="text-xs font-poppins">
-                        minimum amount : ₹30
+                        minimum amount : $0.01
                       </p>
                       <form
                         action=""
@@ -310,13 +304,15 @@ const dashboard = () => {
                       >
                         <input
                           type="number"
-                          min={20}
-                          max="100"
+                          min={0.01}
+                          max="2"
                           className="input input-info w-full"
                           value={withdraw}
                           onChange={(e) => setWithdraw(e.target.value)}
                         />
-                        <button className="btn btn-info font-poppins text-base mt-1">
+                        <button className="btn btn-info font-poppins text-base mt-1"
+                        onClick={handleWithdraw}
+                        >
                           Withdraw
                         </button>
                       </form>
@@ -371,7 +367,7 @@ const dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {TableDatas.map((data, index) => (
+                  {TableDatas?.map((data, index) => (
                     <tr key={index}>
                       <th>{index + 1}</th>
                       <td>{data.event}</td>
@@ -384,6 +380,7 @@ const dashboard = () => {
                       </td>
                       <td>{data.multiplier}</td>
 
+
                       <td className="flex justify-start items-center gap-2">
                         <FaBitcoin className="fill-warning" />
                         {data.payout}
@@ -394,6 +391,7 @@ const dashboard = () => {
               </table>
             </div>
           </div>
+
 
           <div className="mt-4 bg-base-200 rounded-md border border-base-content/10">
             <p className="p-3 font-poppins font-medium text-base flex items-center gap-2">
@@ -413,7 +411,7 @@ const dashboard = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {TradeData.map((data, index) => (
+                  {TradeData?.map((data, index) => (
                     <tr key={index}>
                       <th>{index + 1}</th>
                       <td>{data.stock}</td>
@@ -424,6 +422,7 @@ const dashboard = () => {
                         <span>{data.price}</span>
                       </td>
                       <td>{data.PriceChange}</td>
+
 
                       <td className="flex justify-start items-center gap-2">
                         <FaBitcoin className="fill-warning" />
@@ -448,7 +447,7 @@ const dashboard = () => {
           </h1>
           <div className="mt-4 flex flex-col md:flex-row justify-center items-center gap-4 w-full">
             <Image
-              src="/f1-race.jpg"
+              src={user?.image||'/f1-race.jpg'}
               alt="userimage"
               width={400}
               height={400}
@@ -460,7 +459,7 @@ const dashboard = () => {
                   <FaUser /> Username :
                 </div>
                 <div className="font-medium font-inter p-2.5 rounded-full bg-base-200 w-full border border-base-content/10 text-sm px-4">
-                  Username
+                  {user?.name}
                 </div>
               </div>
               <div className="flex flex-col gap-2 w-full">
@@ -468,7 +467,7 @@ const dashboard = () => {
                   <MdEmail /> Email :
                 </div>
                 <div className="font-medium font-inter p-2.5 rounded-full bg-base-200 w-full border border-base-content/10 text-sm px-4">
-                  example@gmail.com
+                  {user?.email}
                 </div>
               </div>
             </div>
@@ -484,7 +483,7 @@ const dashboard = () => {
                 <HiCalendarDateRange /> Created At :
               </div>
               <div className="font-medium font-inter p-2.5 rounded-full bg-base-200 w-full border border-base-content/10 text-sm px-4">
-                29 July 2025
+                {user?.createdAt?new Date(user.createdAt).toLocaleString():""}
               </div>
             </div>
             <div className="flex flex-col gap-2 w-full">

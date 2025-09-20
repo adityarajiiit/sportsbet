@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React,{use} from "react";
 import Image from "next/image";
 import ScoreCard from "@/public/Score.png";
 import cricket from "@/public/cricket.jpg";
@@ -15,6 +15,8 @@ import { MdCancel } from "react-icons/md";
 import { FaHourglassStart } from "react-icons/fa";
 import { FaHourglassEnd } from "react-icons/fa";
 import { motion, AnimatePresence } from "motion/react";
+import { useSession } from "next-auth/react";
+import Avatar from 'react-avatar'
 import {
   Card,
   CardContent,
@@ -30,88 +32,325 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 function EventScore({params}) {
+  params=use(params)
   const [buyamount, setBuyAmount] = useState(0);
   const [buyamount2, setBuyAmount2] = useState(0);
   const [ExitPrice, setExitPrice] = useState(0);
   const [StopLossPrice, setStopLossPrice] = useState(0);
+  const[isstoplosschecked,setIsstoplosschecked]=useState(false)
+  const[istakeprofitchecked,setIstakeprofitchecked]=useState(false)
   const [CommentIndex, setCommentIndex] = useState(null);
   const [showReplies, setShowReplies] = useState(null);
   const [replyIndex, setReplyIndex] = useState(null);
   const { selectedEvent } = useSelectedEvent();
+  const [matchid,setMatchid]=useState("")
+  const [usercomment,setUsercomment]=useState({
+    null:""
+  })
   const event = selectedEvent;
-  const chartData = [{ team1: 70, team2: 30 }];
+  const [comments,setComments]=useState([
+    
+  ])
   const [score,setScore]=useState({})
+  const [socket,setSocket]=useState(null)
+  const [matchbets,setMatchbets]=useState([])
+  const session=useSession()
+
   useEffect(()=>{
     fetchscore()
+    
     const socket=io("http://localhost:4000")
+    setSocket(socket)
     socket.on("connect",()=>{
-      console.log('user connected : ',socket.id)
+     
       
     })
     socket.on("match-update",(data)=>{
-      console.log('match-update : ', data)
-      setScore(data.data)
+      console.log(data)
+      const matchinfo=data?.data?.matchInfo
+      const matchscore=data?.data?.matchScore
+      if(matchinfo?.matchId===params.matchid){
+        setScore({
+          start:new Date(matchinfo.startDate).toLocaleString(),
+          end:new Date(matchinfo.endDate).toLocaleString(),
+          team1:matchinfo.team1.teamSName,
+          team2:matchinfo.team2.teamSName,
+          score1:matchscore?.team1Score?.inngs1?.runs!==undefined?
+          `${matchscore.team1Score.inngs1.runs}/${matchscore.team1Score.inngs1.wickets||"0"}(${matchscore.team1Score.inngs1.overs})`: 
+          "Not played yet",
+          score2:matchscore?.team2Score?.inngs1?.runs!==undefined? 
+          `${matchscore.team2Score.inngs1.runs}/${matchscore.team2Score.inngs1.wickets||"0"}(${matchscore.team2Score.inngs1.overs})`: 
+          "Not played yet",
+          status:matchinfo.status,
+          stadium:matchinfo.venueInfo.ground,
+          series:matchinfo.seriesName,
+          matchstate:matchinfo.matchState,
+          matchId:matchid
+        })
+      }
     })
+  socket.on("comment-added",(data)=>{
+
+  const receivedcomment={
+    author:data.name,
+    id:data.id,
+    date:new Date(data.createdAt).toLocaleString(),
+    chat:data.message,
+    replies:data.replies,
+    replyto:data.replyto||null
+  }
+  if(data.parentcommentId===null){
+    setComments(prevComments=>[...prevComments,receivedcomment])
+  }
+  else{
+    setComments(prevComments=>{
+      const updatedComments=[...prevComments]
+      const index=updatedComments.findIndex(comment=>comment.id===data.parentcommentId)
+      if(index!==-1){
+        updatedComments[index]={
+          ...updatedComments[index],
+          replies:[...(updatedComments[index].replies||[]),receivedcomment]
+        }
+      }
+      return updatedComments
+    });
+  }
+})
+socket.on('betting-update',(data)=>{
+  console.log(data)
+  const oddsandamount=data.map((outcome)=>{
+    return{
+      id:outcome.teamId,
+      odds:outcome.odds,
+      amount:outcome.amount,
+      name:outcome.name,
+      matchbetId:outcome.matchbetId,
+      matchoutcomesId:outcome.matchoutcomesId
+    }
+  })
+  setMatchbets(oddsandamount)
+})
     return()=>{
       socket.off("connect")
       socket.off("match-update")
       socket.disconnect()
     }
   },[])
+  useEffect(()=>{
+    if(score.matchId){
+      getmatchId()
+      getComments()
+      getMatchbets()
+    }
+  },[score.matchId])
+  const getmatchId=async()=>{
+    const response=await axios.get("http://localhost:4000/api/others/getmatchid",{
+      params:{
+        cricbuzzmatchId:params.matchid
+      }
+    })
+    setMatchid(response.data.matchId)
+  }
   const fetchscore=async()=>{
     const response=await axios.get(`http://localhost:4000/api/others/match/${params.matchid}`)
-    console.log(response.data)
-    setScore(response.data)
+  
+    const data=response.data
+    setScore({
+      start:new Date(data.start).toLocaleString(),
+      end:new Date(data.end).toLocaleString(),
+      team1:data.team1.teamSName,
+      team2:data.team2.teamSName,
+       score1:data.scorecard?.team1Score?.inngs1?.runs!==undefined ?
+          `${data.scorecard.team1Score.inngs1.runs}/${data.scorecard.team1Score.inngs1.wickets||"0"}(${data.scorecard.team1Score.inngs1.overs})` : 
+          "Not played yet",
+        score2:data.scorecard?.team2Score?.inngs1?.runs!==undefined? 
+          `${data.scorecard.team2Score.inngs1.runs}/${data.scorecard.team2Score.inngs1.wickets||"0"}(${data.scorecard.team2Score.inngs1.overs})` : 
+          "Not played yet",
+        status:data.status,
+        stadium:data.stats.ground,
+        series:data.title,
+        matchstate:data.matchState,
+        matchId:data.id
+    })
   }
+  const getComments=async()=>{
+    const response=await axios.get('http://localhost:4000/api/comments/getcomments',{
+      params:{
+        pagetype:"match",
+        matchId:score.matchId,
+        parentcommentId:null
+      }
+    },{
+      headers:{
+        "Content-Type":"application/json"
+      }
+    })
+    const result=response.data
+    const allcomments=result.map((comment)=>{
+      return{
+        author:comment.user.name,
+        id:comment.id,
+        date:new Date(comment.createdAt).toLocaleString(),
+        chat:comment.message,
+        replies:comment.replies,
+        replyto:comment.replyto|setMatchbets(response.data)|null
+      }
+    })
+    setComments(allcomments)
+    console.log(result)
+  }
+  const newComment=async(message,parentId,replyto)=>{
+    if(!session?.data?.user){
+      alert("Please login to comment")
+      return
+    }
+    const data={
+      pagetype:"match",
+      matchId:score.matchId,
+      parentcommentId:parentId||null,
+      email:session?.data?.user?.email,
+      message,
+      replyto
+    }
+    
+    socket.emit('new-comment',{data})
+  
+  }
+  const getMatchbets=async()=>{
+    console.log("Hi")
+      const response=await axios.get("http://localhost:4000/api/others/getmatchbets",{
+        params:{
+          matchId:score.matchId
+        }
+      },
+    {
+      headers:{
+        "Content-Type":"application/json"
+      }
+    })
+    console.log(response.data)
+    const matchbets=response.data.matchbets
+    const matchbetoutcomes=response.data.matchbetoutcomes
+    const oddsandamount=matchbetoutcomes.map((outcome)=>{
+      return{
+        id:outcome.teamId,
+        odds:outcome.odds,
+        amount:outcome.total,
+        name:outcome.teamname,
+        matchbetId:outcome.matchbetId,
+        matchoutcomesId:outcome.id
+      }
+    })
+    setMatchbets(oddsandamount)
+    console.log(oddsandamount)
+  }
+  const newBet=async(team)=>{
+    if(!session?.data?.user){
+      alert("Please login to place bet")
+      return
+    }
+    const data={
+      matchId:score.matchId,
+      type:"full",
+      matchbetId:matchbets[0].matchbetId,
+      details:{},
+      amount:team==="team1"?buyamount:buyamount2,
+      status:"pending",
+      odds:team==="team1"?matchbets[0].odds:matchbets[1].odds,
+      matchoutcomeId:team==="team1"?matchbets[0].matchoutcomesId:matchbets[1].matchoutcomesId,
+    }
+    console.log(data)
+    const response=await axios.post("http://localhost:4000/api/bets/newbet",data,{
+      headers:{
+        "Content-Type":"application/json"
+      },
+      withCredentials:true
+    })
+    if(isstoplosschecked){
+      await setStoploss(response.data.bet.id)
+    }
+    if(istakeprofitchecked){
+      await setTakeprofit(response.data.bet.id)
+    }
+    console.log(response.data)
+  }
+  const setStoploss=async (betId)=>{
+      if(StopLossPrice>=ExitPrice){
+        alert("Stop loss should be less than exit price")
+        return
+      }
+      const stoploss=await axios.post("http://localhost:4000/api/alerts/newalert",{
+        pagetype:"match",
+        betId,
+        condition:{
+          type:"low",
+          value:StopLossPrice,
+          action:"sell"
+        }
+
+
+      },{
+        headers:{
+          "Content-Type":"application/json"
+        },
+        withCredentials:true
+      })
+      console.log(stoploss.data)
+  }
+  const setTakeprofit=async(betId)=>{
+    if(ExitPrice<=StopLossPrice){
+      alert("Take profit should be greater than stop loss")
+      return
+    }
+    const takeprofit=await axios.post("http://localhost:4000/api/alerts/newalert",{
+      pagetype:"match",
+      betId,
+      condition:{
+        type:"high",
+        value:ExitPrice,
+        action:"sell"
+      }
+    },{
+      headers:{
+        "Content-Type":"application/json"
+      },
+      withCredentials:true
+    })
+    console.log(takeprofit.data)
+  }
+  const percentage=(team1,team2)=>{
+      const total=team1+team2
+      if(total==0){
+        return 50
+      }
+      return Math.round((team1/total)*100)
+    }
   const chartConfig = {
     team1: {
-      label: "IND",
+      label: score.team1||"Team 1",
       color: "var(--chart-1)",
     },
     team2: {
-      label: "ENG",
+      label: score.team2||"Team 2",
       color: "var(--chart-2)",
     },
   };
-  
-  const liveChat = [
-    {
-      author: "Rajan",
-      image: cricket,
-      date: "29 Aug 2025",
-      chat: "hello!<div className=lg:p-4 lg:bg-base-300 rounded-xl lg:border border-base-content/20",
-      replies: [
-        {
-          author: "Rajan",
-          image: cricket,
-          date: "29 Aug 2025",
-          chat: "hello!<div className=lg:p-4 lg:bg-base-300 rounded-xl lg:border border-base-content/20",
-        },
-        {
-          author: "Rajan",
-          image: cricket,
-          date: "29 Aug 2025",
-          chat: "hello!<div className=lg:p-4 lg:bg-base-300 rounded-xl lg:border border-base-content/20",
-        },
-      ],
-    },
-    {
-      author: "Rajan",
-      image: cricket,
-      date: "29 Aug 2025",
-      chat: "hello!",
-      replies: [
-        {
-          author: "Rajan",
-          image: cricket,
-          date: "29 Aug 2025",
-          chat: "hello!<div className=lg:p-4 lg:bg-base-300 rounded-xl lg:border border-base-content/20",
-        },
-      ],
-    },
-  ];
-  console.log(event);
 
+  const chartData =[
+    
+    {
+      team1:percentage(matchbets[0]?.amount,matchbets[1]?.amount),
+      team2:percentage(matchbets[1]?.amount,matchbets[0]?.amount),
+    }
+  ]
+const winpercentage=[{
+  name:score.team1,
+  value:percentage(matchbets[0]?.amount,matchbets[1]?.amount)
+},
+{
+  name:score.team2,
+  value:percentage( matchbets[1]?.amount,matchbets[0]?.amount)
+}]
   return (
     <div className="p-4 pt-24">
       <h1 className="uppercase font-inter text-2xl font-bold">
@@ -124,7 +363,7 @@ function EventScore({params}) {
           </legend>
           <p className="flex items-center gap-1.5 text-xs font-medium font-inter text-neutral-300 h-8 w-fit px-3 input border-none bg-muted-foreground rounded-md">
             <FaHourglassStart />
-            2025-08-19 14:00
+            {score.start}
           </p>
         </div>
         <div className="fieldset">
@@ -133,7 +372,7 @@ function EventScore({params}) {
           </legend>
           <p className="flex items-center gap-1.5 text-xs font-medium font-inter text-neutral-300 h-8 w-fit px-3 input border-none bg-muted-foreground rounded-md">
             <FaHourglassEnd />
-            2025-08-19 17:30
+            {score.end}
           </p>
         </div>
       </div>
@@ -150,7 +389,7 @@ function EventScore({params}) {
             <div className="flex  justify-between gap-4 items-center">
               <HoverBorderGradient className="bg-base-100 rounded-full p-1 px-6 w-full">
                 <p className="text-xs font-medium font-poppins text-center w-full">
-                  India vs England test series
+                  {score.series}
                 </p>
               </HoverBorderGradient>
               <div className="flex justify-between items-center">
@@ -159,7 +398,7 @@ function EventScore({params}) {
                     <div className="status status-error animate-ping"></div>
                     <div className="status status-error"></div>
                   </div>{" "}
-                  LIVE
+                  {score.matchstate}
                 </div>
               </div>
             </div>
@@ -174,7 +413,7 @@ function EventScore({params}) {
                       className="size-10 sm:size-12 rounded-full"
                     ></Image>{" "}
                     <span className="font-bold text-base sm:text-xl font-inter">
-                      IND
+                      {score.team1}
                     </span>
                   </div>
                   <div
@@ -182,7 +421,7 @@ function EventScore({params}) {
                    shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]"
                   >
                     <p className="text-base sm:text-xl lg:text-2xl font-black font-inter">
-                      300/10
+                      {score.score1}
                     </p>
                   </div>
                 </div>
@@ -195,13 +434,13 @@ function EventScore({params}) {
                    shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]"
                   >
                     <p className="text-base sm:text-xl lg:text-2xl font-black font-inter">
-                      300/10
+                      {score.score2}
                     </p>
                   </div>
 
                   <div className=" flex gap-3 items-center justify-center">
                     <span className="font-bold text-base sm:text-xl font-inter">
-                      ENG
+                      {score.team2}
                     </span>
                     <Image
                       src={cricket}
@@ -213,10 +452,10 @@ function EventScore({params}) {
               </div>
 
               <p className="text-center font-medium font-inter text-sm">
-                Cazaly's Stadium
+                {score.stadium}
               </p>
               <p className="text-center font-medium font-inter text-xs -mt-2 text-neutral-300">
-                Match starts at Aug 19, 04:30 GMT
+                {score.status}
               </p>
             </div>
             <div className="relative lg:max-w-5xl flex flex-col gap-2.5">
@@ -228,7 +467,7 @@ function EventScore({params}) {
                       document.getElementById("my_modal_3").showModal()
                     }
                   >
-                    IND <span className="font-poppins font-bold">x1.2</span>
+                    {score.team1} <span className="font-poppins font-bold">x{matchbets[0]?.odds}</span>
                   </button>
                   <dialog id="my_modal_3" className="modal">
                     <div className="modal-box">
@@ -241,10 +480,10 @@ function EventScore({params}) {
                         Press ESC key or click on ✕ button to close
                       </p>
                       <h3 className="text-lg font-semibold font-poppins">
-                        INDIA VS ENGLAND
+                        {score.team1} VS {score.team2}
                       </h3>
                       <div className="badge badge-soft badge-accent rounded-sm text-sm mt-2">
-                        IND
+                        {score.team1}
                       </div>
                       <div className=" mt-2 bg-base-300 p-2 rounded-lg">
                         <div className="bg-base-100 border-base-300 p-6">
@@ -268,8 +507,8 @@ function EventScore({params}) {
                               <label className="label">
                                 <input
                                   type="checkbox"
-                                  defaultChecked
                                   className="checkbox"
+                                  onChange={(e)=>setIstakeprofitchecked(e.target.checked)}
                                 />
                                 Take Profit
                               </label>
@@ -290,8 +529,8 @@ function EventScore({params}) {
                               <label className="label mt-2">
                                 <input
                                   type="checkbox"
-                                  defaultChecked
                                   className="checkbox"
+                                  onChange={(e)=>setIsstoplosschecked(e.target.checked)}
                                 />
                                 Stop Loss
                               </label>
@@ -312,13 +551,14 @@ function EventScore({params}) {
                             </fieldset>
                             <button
                               className="btn btn-accent font-poppins text-base mt-1"
-                              onClick={() =>
-                                document
-                                  .getElementById("my_modal_3")
-                                  .showModal()
-                              }
+                              onClick={(e) =>{
+                                e.preventDefault();
+                                document.getElementById("my_modal_3")
+                                  .close();
+                                newBet("team1");
+                              }}
                             >
-                              Trade
+                              Place Bet
                             </button>
                           </form>
                         </div>
@@ -333,7 +573,7 @@ function EventScore({params}) {
                       document.getElementById("my_modal_1").showModal()
                     }
                   >
-                    ENG<span className="font-poppins font-bold">x0.8</span>
+                    {score.team2}<span className="font-poppins font-bold">x{matchbets[1]?.odds}</span>
                   </button>
                   <dialog id="my_modal_1" className="modal">
                     <div className="modal-box">
@@ -346,10 +586,10 @@ function EventScore({params}) {
                         Press ESC key or click on ✕ button to close
                       </p>
                       <h3 className="text-lg font-semibold font-poppins">
-                        INDIA VS ENGLAND
+                        {score.team1} VS {score.team2}
                       </h3>
                       <div className="badge badge-soft badge-info rounded-sm text-sm mt-2">
-                        ENG
+                        {score.team2}
                       </div>
                       <div className=" mt-2 bg-base-300 rounded-lg p-2">
                         <div className="bg-base-100 border-base-300 p-6">
@@ -373,7 +613,9 @@ function EventScore({params}) {
                               <label className="label">
                                 <input
                                   type="checkbox"
-                                  defaultChecked
+                                  
+                                  onChange={(e)=>setIstakeprofitchecked(e.target.checked)}
+
                                   className="checkbox"
                                 />
                                 Take Profit
@@ -395,7 +637,8 @@ function EventScore({params}) {
                               <label className="label mt-2">
                                 <input
                                   type="checkbox"
-                                  defaultChecked
+                                  
+                                  onChange={(e)=>setIsstoplosschecked(e.target.checked)}
                                   className="checkbox"
                                 />
                                 Stop Loss
@@ -415,8 +658,14 @@ function EventScore({params}) {
                                 }}
                               />
                             </fieldset>
-                            <button className="btn btn-info font-poppins text-base mt-1">
-                              Trade
+                            <button className="btn btn-info font-poppins text-base mt-1"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              newBet("team2")
+                              document.getElementById("my_modal_1").close()
+                            }}
+                            >
+                              Place Bet
                             </button>
                           </form>
                         </div>
@@ -474,7 +723,7 @@ function EventScore({params}) {
                               y={(viewBox.cy || 0) - 10}
                               className="fill-base-content text-2xl font-poppins font-bold"
                             >
-                              100%
+                              {winpercentage[0].value>50?winpercentage[0].value:winpercentage[1].value}%
                             </tspan>
                             <tspan
                               x={viewBox.cx}
@@ -482,7 +731,7 @@ function EventScore({params}) {
                               className="fill-gray-400"
                             >
                               {" "}
-                              Winning percentage{" "}
+                              {winpercentage[0].value>50?winpercentage[0].name:winpercentage[1].name} is leading bets count
                             </tspan>
                           </text>
                         );
@@ -493,6 +742,7 @@ function EventScore({params}) {
                 <RadialBar
                   dataKey="team1"
                   stackId="a"
+                  name={winpercentage[0].name}
                   cornerRadius={6}
                   fill="var(--color-team1)"
                   className="stroke-transparent stroke-2"
@@ -500,6 +750,7 @@ function EventScore({params}) {
                 <RadialBar
                   dataKey="team2"
                   fill="var(--color-team2)"
+                  name={winpercentage[1].name}
                   stackId="a"
                   cornerRadius={6}
                   className="stroke-transparent stroke-2"
@@ -510,11 +761,11 @@ function EventScore({params}) {
             <div className="flex flex-col gap-2 font-poppins text-sm">
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-chart-1"></span>
-                <span className="font-bold">IND: 65%</span>
+                <span className="font-bold">{score.team1} : {matchbets[0]?.amount}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-3 h-3 rounded-full bg-chart-2"></span>
-                <span className="font-bold">ENG: 35%</span>
+                <span className="font-bold">{score.team2} : {matchbets[1]?.amount}</span>
               </div>
             </div>
           </CardContent>
@@ -530,15 +781,15 @@ function EventScore({params}) {
           <div className="p-3 border-b border-base-content/10">
             <p className="font-poppins text-sm font-semibold">Comments()</p>
           </div>
-          <div className="min-h-96 p-3 overflow-y-auto flex flex-col gap-1">
-            {liveChat.map((chat, index) => {
-              const isReplying = CommentIndex === index;
+          <div className="h-96 max-h-96 p-3 overflow-y-auto flex flex-col gap-1">
+            {
+            comments.map((chat, index) => {
+              const isReplying = CommentIndex === index
               return (
                 <div key={index} className="p-1 flex items-start gap-3 w-full">
-                  <Image
-                    src={chat.image}
-                    className="size-6 rounded-full object-cover"
-                    alt={chat.image}
+                  <Avatar name={chat.author} 
+                  className="rounded-full object-cover"
+                  size="2rem"
                   />
                   <div className="flex flex-col items-start justify-center w-full">
                     <p className="text-sm font-inter text-neutral-300  font-medium">
@@ -610,9 +861,19 @@ function EventScore({params}) {
                           <input
                             type="text"
                             className="input join-item w-full"
-                            placeholder="Type your commnet here"
+                            placeholder="Type your comment here"
+                            value={usercomment[chat.id]||""}
+                            onChange={(e)=>setUsercomment({...usercomment,[chat.id]:e.target.value})}
                           />
-                          <button className="btn join-item bg-white text-black">
+                          <button className="btn join-item bg-white text-black"
+                          onClick={(e)=>{
+                            e.preventDefault()
+                            newComment(usercomment[chat.id],chat.id,null)
+                          
+                            setUsercomment({...usercomment,[chat.id]:""})
+                            setCommentIndex(null)
+                          }}
+                          >
                             <IoSend />
                           </button>
                         </div>
@@ -626,10 +887,10 @@ function EventScore({params}) {
                             key={replyIdx}
                             className="p-1 flex items-start gap-3 w-full mt-2"
                           >
-                            <Image
-                              src={reply.image}
-                              className="size-6 rounded-full object-cover"
-                              alt={reply.image}
+                            <Avatar 
+                              name={reply.author} 
+                              className="rounded-full object-cover"
+                              size="1.5rem"
                             />
                             <div className="flex flex-col items-start justify-center w-full">
                               <p className="text-sm font-inter text-neutral-300  font-medium">
@@ -639,7 +900,7 @@ function EventScore({params}) {
                                 </span>
                               </p>
                               <p className="font-inter text-sm font-normal">
-                                {reply.chat}
+                                {reply.replyto&&<span className="text-blue-500">{"@"+reply.replyto}</span>} {reply.chat}
                               </p>
                               <div className="mt-1 flex flex-col justify-center items-start w-full">
                                 <button
@@ -682,9 +943,18 @@ function EventScore({params}) {
                                       <input
                                         type="text"
                                         className="input join-item w-full"
-                                        placeholder="Type your commnet here"
+                                        placeholder="Type your comment here"
+                                        value={usercomment[reply.id]||""}
+                                        onChange={(e)=>setUsercomment({...usercomment,[reply.id]:e.target.value})}
                                       />
-                                      <button className="btn join-item bg-white text-black">
+                                      <button className="btn join-item bg-white text-black"
+                                      onClick={(e)=>{
+                                        e.preventDefault();
+                                        newComment(usercomment[reply.id],chat.id,reply.author)
+                                        setUsercomment({...usercomment,[reply.id]:""})
+                                        setReplyIndex(null)
+                                      }}
+                                      >
                                         <IoSend />
                                       </button>
                                     </div>
@@ -708,9 +978,17 @@ function EventScore({params}) {
               <input
                 type="text"
                 className="input join-item w-full"
-                placeholder="Type your commnet here"
+                placeholder="Type your comment here"
+                value={usercomment.null}
+                onChange={(e) => setUsercomment({...usercomment,null:e.target.value })}
               />
-              <button className="btn join-item bg-white text-black">
+              <button className="btn join-item bg-white text-black"
+                onClick={(e) => {
+                  e.preventDefault();
+                  newComment(usercomment.null,null,null)
+                  setUsercomment({...usercomment,null:""})
+                }}
+              >
                 <IoSend />
               </button>
             </div>

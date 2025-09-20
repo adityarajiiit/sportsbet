@@ -6,7 +6,6 @@ import { fileURLToPath } from "url"
 import { dirname } from "path"
 import { io } from "../../index.js"
 import {PrismaClient} from "@prisma/client"
-import { match } from "assert"
 const prisma=new PrismaClient()
 dotenv.config({path:'../../.env'})
 const filename=fileURLToPath(import.meta.url)
@@ -30,8 +29,8 @@ export const betsConsumer=async()=>{
         await consumer.run({
             eachMessage:async({topic,partition,message,heartbeat})=>{
                 const data=JSON.parse(message.value.toString())
-                const outcomes=await prisma.matchbet.findMany({
-                    where:{id:data.matchbetId}
+                const outcomes=await prisma.matchbetoutcomes.findMany({
+                    where:{matchbetId:data.matchbetId}
                 })
                 let outcomeamount=[]
                 for(const outcome of outcomes){
@@ -45,28 +44,37 @@ export const betsConsumer=async()=>{
                     for(const bet of bets){
                         total+=bet.amount
                     }
-                    outcomeamount.push({outcomeId:outcome.id,amount:total})
+                    outcomeamount.push({outcomeId:outcome.id,amount:total,matchbetId:outcome.matchbetId,name:outcome.teamname})
                 }
                 let totalamount=0
                 for(const i of outcomeamount){
                     totalamount+=i.amount
                 }
+                let allodds=[]
                 for(const i of outcomeamount){
-                    i.percentage=(i.amount/totalamount)*100
-                    i.odds=totalamount===0?0:+(1/(i.percentage/100)).toFixed(2)
-                    await prisma.matchbetoutcomes.update({
+                    i.percentage=totalamount===0?0:(i.amount/totalamount)*100
+                    let newodds=0
+                    if(i.percentage>0){
+                        newodds=parseFloat((100/i.percentage).toFixed(2))
+                    }
+                    else{
+                        newodds=0
+                    }
+                    
+                    const result=await prisma.matchbetoutcomes.update({
                         where:{id:i.outcomeId},
                         data:{
-                            odds:i.odds,
-                            total:i.amount
+                            odds:isFinite(newodds)?newodds:0,
+                            total:isFinite(i.amount)?i.amount:0
                         }
                     })
+                    allodds.push({id:result.teamId,odds:result.odds})
                 }
-                io.emit('betting-update',{
-                    outcomeamount,
-                    matchbetId:data.matchbetId,
-                    matchId:data.matchId
-                })
+                const answer=[
+                    {odds:allodds[0].odds,teamId:allodds[0].id,amount:outcomeamount[0].amount,matchbetId:outcomeamount[0].matchbetId,name:outcomeamount[0].name,matchoutcomesId:outcomeamount[0].outcomeId},
+                    {odds:allodds[1].odds,teamId:allodds[1].id,amount:outcomeamount[1].amount,matchbetId:outcomeamount[1].matchbetId,name:outcomeamount[1].name,matchoutcomesId:outcomeamount[1].outcomeId}
+                ]
+                io.emit('betting-update',answer)
                 await heartbeat()
                 console.log('betting update done')
             }
@@ -78,4 +86,3 @@ export const betsConsumer=async()=>{
         setTimeout(betsConsumer,5000)
     }
 }
-

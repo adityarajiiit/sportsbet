@@ -37,19 +37,26 @@ export const stockConsumer=async()=>{
                     console.log("stock not found")
                     return
                 }
-                let newshares=stock.shares
+                let newprice,newshares,newtotal
                 if(data.type==='buy'){
-                    newshares+=data.shares
+                    const actualtotal=data.shares*data.price
+                    newprice=(stock.price*1000+actualtotal)/1000
+                    newshares=stock.shares-data.shares
                 }
-                else if(data.type==='sell'){
-                    newshares-=data.shares
+                else if(data.type==='sell') {
+                    const sellvalue=data.shares*data.price
+                    newprice=(stock.price*1000-sellvalue)/1000
+                    newshares=stock.shares+data.shares
                 }
-                if(newshares<0){
-                    console.log("not enough shares")
+                else{
+                    console.log("unknown transaction type")
                     return
                 }
-                const newprice=data.price
-                const newtotal=newshares*newprice
+                if(newshares<0) {
+                    console.log("invalid shares calculation")
+                    return
+                }
+                newtotal=newprice*1000
                 const updatedstock=await prisma.stock.update({
                     where:{id:data.stockId},
                     data:{
@@ -59,9 +66,10 @@ export const stockConsumer=async()=>{
                     }
                 })
                 console.log(`stock:${JSON.stringify(updatedstock)}`)
-                io.emit('stock-update',{
+                io.emit('stock-update', {
                     stockId:data.stockId,
-                    stock:updatedstock
+                    stock:updatedstock,
+                    transaction:data
                 })
                 await heartbeat()
             }
@@ -69,7 +77,6 @@ export const stockConsumer=async()=>{
     }
     catch(e){
         console.log(e.message)
-        setTimeout(stockConsumer,5000)
+        setTimeout(stockConsumer, 5000)
     }
 }
-

@@ -12,6 +12,7 @@ import { FaBell } from "react-icons/fa";
 import { Vortex } from "@/components/ui/vortex";
 import newsletter from "@/public/newsletter.png";
 import { HoverBorderGradient } from "@/components/ui/bg-gradient";
+import axios from "axios"
 export default function Home() {
   const { data: session } = useSession();
   const features = [
@@ -58,6 +59,15 @@ export default function Home() {
       description: " Never miss a game.",
     },
   ];
+  const getLiveMatches=async()=>{
+    try{
+        const response=await axios.get(``,{withCredentials:true})
+
+    }
+    catch(e){
+      console.log(e)
+    }
+  }
 
   return (
     <div

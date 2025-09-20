@@ -51,25 +51,27 @@ const createWallet=async(req,res)=>{
 
 const newOrder=async(req,res)=>{
     try{
-        const userId=req.headers['user-id']
-        const user=await prisma.user.findUnique({ where:{id:userId} })
+        const userId=req.userId
+        console.log(userId)
+        const user=await prisma.user.findUnique({where:{id:userId}})
         if(!user){
             return res.json({error:"user not found"})
         }
-
-        const wallet=await prisma.wallet.findUnique({ where:{ userId } })
+        console.log(user)
+        const wallet=await prisma.wallet.findUnique({where:{userId}})
         if(!wallet){
-            await prisma.wallet.create({ data:{ userId } })
+            await prisma.wallet.create({data:{userId}})
         }
 
         const data=req.body
-        const amountNum = Number(data.amount)
+        const amountNum=Number(data.amount)
         const apiKey=process.env.PAYMENTO_API_KEY
         const order=await prisma.order.create({
-            data:{ amount: amountNum, userId }
+            data:{ amount: amountNum,userId }
         })
+        console.log(data.amount)
         const payload={
-            fiatAmount:String(amountNum),  
+            fiatAmount:String(data.amount),  
             fiatCurrency:"USD",
             ReturnUrl:process.env.PAYMENTO_RETURN_URL||"http://localhost:3000/payments/success",
             orderId:String(order.id), 
