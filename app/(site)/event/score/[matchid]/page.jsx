@@ -5,6 +5,7 @@ import ScoreCard from "@/public/Score.png";
 import cricket from "@/public/cricket.jpg";
 import { useState } from "react";
 import { useEffect } from "react";
+import OddsHistoryGraph from "@/app/components/EventComponents/OddsHistoryGraph";
 
 import { IoSend } from "react-icons/io5";
 import { HoverBorderGradient } from "@/components/ui/bg-gradient";
@@ -26,6 +27,8 @@ import {
 } from "@/components/ui/card";
 import {io} from "socket.io-client";
 import axios from "axios";
+import { useUserStore } from "@/app/store/useUserStore.jsx";
+import { toast } from "sonner";
 import {
   ChartContainer,
   ChartTooltip,
@@ -55,15 +58,15 @@ function EventScore({params}) {
   const [socket,setSocket]=useState(null)
   const [matchbets,setMatchbets]=useState([])
   const session=useSession()
+  const {refreshUser,walletBalance}=useUserStore()
 
   useEffect(()=>{
     fetchscore()
     
-    const socket=io("http://localhost:4000")
+    const socket=io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000")
     setSocket(socket)
     socket.on("connect",()=>{
-     
-      
+      socket.emit("join-room",params.matchid)
     })
     socket.on("match-update",(data)=>{
       console.log(data)
@@ -131,8 +134,11 @@ socket.on('betting-update',(data)=>{
   setMatchbets(oddsandamount)
 })
     return()=>{
+      socket.emit("leave-room",params.matchid)
       socket.off("connect")
       socket.off("match-update")
+      socket.off("comment-added")
+      socket.off("betting-update")
       socket.disconnect()
     }
   },[])
@@ -144,7 +150,7 @@ socket.on('betting-update',(data)=>{
     }
   },[score.matchId])
   const getmatchId=async()=>{
-    const response=await axios.get("http://localhost:4000/api/others/getmatchid",{
+    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getmatchid`,{
       params:{
         cricbuzzmatchId:params.matchid
       }
@@ -152,7 +158,7 @@ socket.on('betting-update',(data)=>{
     setMatchid(response.data.matchId)
   }
   const fetchscore=async()=>{
-    const response=await axios.get(`http://localhost:4000/api/others/match/${params.matchid}`)
+    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/match/${params.matchid}`)
   
     const data=response.data
     setScore({
@@ -174,7 +180,7 @@ socket.on('betting-update',(data)=>{
     })
   }
   const getComments=async()=>{
-    const response=await axios.get('http://localhost:4000/api/comments/getcomments',{
+    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/comments/getcomments`,{
       params:{
         pagetype:"match",
         matchId:score.matchId,
@@ -193,7 +199,7 @@ socket.on('betting-update',(data)=>{
         date:new Date(comment.createdAt).toLocaleString(),
         chat:comment.message,
         replies:comment.replies,
-        replyto:comment.replyto|setMatchbets(response.data)|null
+        replyto:comment.replyto||null
       }
     })
     setComments(allcomments)
@@ -201,7 +207,7 @@ socket.on('betting-update',(data)=>{
   }
   const newComment=async(message,parentId,replyto)=>{
     if(!session?.data?.user){
-      alert("Please login to comment")
+      toast.error("Please login to comment")
       return
     }
     const data={
@@ -218,7 +224,7 @@ socket.on('betting-update',(data)=>{
   }
   const getMatchbets=async()=>{
     console.log("Hi")
-      const response=await axios.get("http://localhost:4000/api/others/getmatchbets",{
+      const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getmatchbets`,{
         params:{
           matchId:score.matchId
         }
@@ -246,7 +252,11 @@ socket.on('betting-update',(data)=>{
   }
   const newBet=async(team)=>{
     if(!session?.data?.user){
-      alert("Please login to place bet")
+      toast.error("Please login to place bet")
+      return
+    }
+    if(!matchbets||matchbets.length<2){
+      toast.error("Betting odds are not yet initialized for this match")
       return
     }
     const data={
@@ -260,26 +270,32 @@ socket.on('betting-update',(data)=>{
       matchoutcomeId:team==="team1"?matchbets[0].matchoutcomesId:matchbets[1].matchoutcomesId,
     }
     console.log(data)
-    const response=await axios.post("http://localhost:4000/api/bets/newbet",data,{
-      headers:{
-        "Content-Type":"application/json"
-      },
-      withCredentials:true
-    })
-    if(isstoplosschecked){
-      await setStoploss(response.data.bet.id)
+    try{
+      const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/bets/newbet`,data,{
+        headers:{
+          "Content-Type":"application/json"
+        },
+        withCredentials:true
+      })
+      if(isstoplosschecked){
+        await setStoploss(response.data.bet.id)
+      }
+      if(istakeprofitchecked){
+        await setTakeprofit(response.data.bet.id)
+      }
+      console.log(response.data)
+      refreshUser()
+      toast.success("Bet placed successfully")
+    } catch (error) {
+      toast.error(error.message)
     }
-    if(istakeprofitchecked){
-      await setTakeprofit(response.data.bet.id)
-    }
-    console.log(response.data)
   }
   const setStoploss=async (betId)=>{
       if(StopLossPrice>=ExitPrice){
-        alert("Stop loss should be less than exit price")
+        toast.error("Stop loss should be less than exit price")
         return
       }
-      const stoploss=await axios.post("http://localhost:4000/api/alerts/newalert",{
+      const stoploss=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,{
         pagetype:"match",
         betId,
         condition:{
@@ -299,10 +315,10 @@ socket.on('betting-update',(data)=>{
   }
   const setTakeprofit=async(betId)=>{
     if(ExitPrice<=StopLossPrice){
-      alert("Take profit should be greater than stop loss")
+      toast.error("Take profit should be greater than stop loss")
       return
     }
-    const takeprofit=await axios.post("http://localhost:4000/api/alerts/newalert",{
+    const takeprofit=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,{
       pagetype:"match",
       betId,
       condition:{
@@ -318,7 +334,7 @@ socket.on('betting-update',(data)=>{
     })
     console.log(takeprofit.data)
   }
-  const percentage=(team1,team2)=>{
+  const percentage=(team1=0,team2=0)=>{
       const total=team1+team2
       if(total==0){
         return 50
@@ -344,11 +360,11 @@ socket.on('betting-update',(data)=>{
     }
   ]
 const winpercentage=[{
-  name:score.team1,
+  name:score.team1||"Team 1",
   value:percentage(matchbets[0]?.amount,matchbets[1]?.amount)
 },
 {
-  name:score.team2,
+  name:score.team2||"Team 2",
   value:percentage( matchbets[1]?.amount,matchbets[0]?.amount)
 }]
   return (
@@ -458,6 +474,11 @@ const winpercentage=[{
                 {score.status}
               </p>
             </div>
+            {score.matchstate==="Recent"||score.matchstate ==="Complete" || score.matchstate === "Match Ended" || score.matchstate === "Abandoned" || score.matchstate === "Finished" ? (
+              <div className="flex justify-center items-center w-full mt-2">
+                 <div className="badge badge-error p-4 w-full font-bold font-poppins text-sm rounded-md backdrop-blur-md bg-error/20 border border-error/50">Match Completed - Betting Closed</div>
+              </div>
+            ) : (
             <div className="relative lg:max-w-5xl flex flex-col gap-2.5">
               <div className="flex justify-center items-center gap-4 w-full relative ">
                 <div className="w-full">
@@ -492,10 +513,18 @@ const winpercentage=[{
                             <input
                               type="range"
                               min={0}
-                              max="100"
+                              max={walletBalance}
                               className="range range-success"
                               value={buyamount}
                               onChange={(e) => setBuyAmount(e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              min={0}
+                              max={walletBalance}
+                              className="input input-success w-full"
+                              value={buyamount}
+                              onChange={(e)=>setBuyAmount(Math.min(parseFloat(e.target.value)||0,walletBalance))}
                             />
                             <p className="ml-2 text-2xl font-medium font-inter">
                               ${buyamount}
@@ -598,10 +627,18 @@ const winpercentage=[{
                             <input
                               type="range"
                               min={0}
-                              max="100"
+                              max={walletBalance}
                               className="range range-info"
                               value={buyamount2}
                               onChange={(e) => setBuyAmount2(e.target.value)}
+                            />
+                            <input
+                              type="number"
+                              min={0}
+                              max={walletBalance}
+                              className="input input-info w-full"
+                              value={buyamount2}
+                              onChange={(e)=>setBuyAmount2(Math.min(parseFloat(e.target.value)||0,walletBalance))}
                             />
                             <p className="ml-2 text-2xl font-medium font-inter">
                               ${buyamount2}
@@ -675,6 +712,7 @@ const winpercentage=[{
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>
@@ -770,14 +808,15 @@ const winpercentage=[{
             </div>
           </CardContent>
 
-          <CardFooter className="flex-col gap-2 text-sm">
-            <div className="text-info leading-none">
-              Showing the status of ongoing match
-            </div>
-          </CardFooter>
         </Card>
 
-        <div className="h-full w-full border border-base-content/10 rounded-xl">
+        <OddsHistoryGraph 
+            matchbetId={matchbets[0]?.matchbetId} 
+            team1Name={score.team1} 
+            team2Name={score.team2} 
+        />
+
+        <div className="h-full w-full border border-base-content/10 rounded-xl md:col-span-2">
           <div className="p-3 border-b border-base-content/10">
             <p className="font-poppins text-sm font-semibold">Comments()</p>
           </div>

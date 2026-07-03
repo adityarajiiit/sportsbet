@@ -13,12 +13,11 @@ function Event() {
 
 useEffect(()=>{
       fetchMatches()
-      const socket=io("http://localhost:4000")
+      const socket=io(process.env.NEXT_PUBLIC_API_URL||"http://localhost:4000")
       socket.on("connect",()=>{
         console.log("connected to socket server")
       })
       socket.on('match-update',(data)=>{
-        
         if(data.topic==="live-matches"){
           console.log(data)
           setLiveevents(data.data)
@@ -36,7 +35,7 @@ useEffect(()=>{
       }
     },[])
     const fetchMatches=async()=>{
-      const response=await axios.get('http://localhost:4000/api/others/livematches')
+      const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/livematches`)
       console.log(response.data)
       setLiveevents(response.data)
     }

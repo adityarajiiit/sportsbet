@@ -8,9 +8,10 @@ import adminRoutes from './routes/admin.routes.js'
 import alertRoutes from './routes/alert.routes.js'
 import betRoutes from './routes/bet.routes.js'
 import  commentsRoutes from './routes/comments.routes.js'
-import cryptomusRoutes from './routes/cryptomus.routes.js'
+import paymentRoutes from './routes/payments.routes.js'
 import reminderRoutes from './routes/reminder.routes.js'
 import stockRoutes from './routes/stock.routes.js'
+import withdrawalRoutes from './routes/withdrawal.routes.js'
 dotenv.config({path:'../.env'})
 import { inngest,functions } from './inngest/inngest.js';
 import { arcjetMiddleware } from './middlewares/arcjet.middleware.js';
@@ -22,6 +23,7 @@ import { betsConsumer } from './utils/kafka.js/bet.consumer.js';
 import { matchfetch } from './utils/kafka.js/consumer.js';
 import { stockConsumer } from './utils/kafka.js/stock.consumer.js';
 import { upcomingmatchesFetch,recentmatchesFetch,livematchesFetch } from './utils/kafka.js/matchfetch.js';
+import { settleMatchesWorker } from './utils/settlement.worker.js';
 import cryptoRoutes from './routes/crypto.routes.js';
 import {socketfunction} from './services/socket.js'
 import cookieParser from 'cookie-parser';
@@ -44,9 +46,10 @@ await stockConsumer()
 
 app.use(cors({
     origin: 'http://localhost:3000',
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     credentials: true
 }));
+app.use(arcjetMiddleware)
 app.use(cookieParser())
 app.use(express.static('public'))
 app.use('/api/others',otherRoutes)
@@ -54,7 +57,8 @@ app.use('/api/admin',adminRoutes)
 app.use('/api/alerts',alertRoutes)
 app.use('/api/bets',betRoutes)
 app.use('/api/comments',commentsRoutes)
-app.use('/api/payments',cryptomusRoutes)
+app.use('/api/payments',paymentRoutes)
+app.use('/api/withdrawal',withdrawalRoutes)
 app.use('/api/reminders',reminderRoutes)
 app.use('/api/stocks',stockRoutes)
 app.use('/api/aws',awsRoutes)
@@ -71,6 +75,10 @@ cron.schedule(`*/30 * * * *`,async()=>{
     console.log("fetching matches")
     await livematchesFetch()
     await recentmatchesFetch()
+})
+cron.schedule(`*/15 * * * *`,async()=>{
+    console.log("running settlement worker")
+    await settleMatchesWorker()
 })
 
 app.get('/',(req,res)=>{

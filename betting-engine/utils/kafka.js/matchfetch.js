@@ -70,17 +70,7 @@ export const upcomingmatchesFetch=async()=>{
                 ]
             })
         }
-        for(const match of matches){
-            await producer.send({
-                topic:'upcoming-matches',
-                messages:[
-                    {
-                        key:match.matchInfo.matchId.toString(),
-                        value:JSON.stringify(match)
-                    }
-                ]
-            })
-        }
+
         console.log("matches fetched ")
         await producer.disconnect()
     }

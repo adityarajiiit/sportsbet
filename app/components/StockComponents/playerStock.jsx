@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect,useRef } from "react";
 import Image from "next/image";
 import { IoMdPricetags } from "react-icons/io";
 import { TbCoinRupeeFilled } from "react-icons/tb";
@@ -15,11 +15,11 @@ import growth from "@/public/gowth.jpg";
 import bar from "@/public/bar.jpg";
 import volume from "@/public/volume.png";
 import PlayerStats from "./Stats/PlayerStats";
-import TradeChart from "./chart";
-
+import PriceHistoryGraph from "./PriceHistoryGraph";
 import io from "socket.io-client";
 import Avatar from 'react-avatar'
 import axios from 'axios'
+import { useUserStore } from "@/app/store/useUserStore.jsx";
 import { IoSend } from "react-icons/io5";
 import { HoverBorderGradient } from "@/components/ui/bg-gradient";
 import { useSelectedEvent } from "@/app/store/useSelectedEvent";
@@ -29,11 +29,13 @@ import { MdCancel } from "react-icons/md";
 import { FaHourglassStart } from "react-icons/fa";
 import { FaHourglassEnd } from "react-icons/fa";
 import { motion, AnimatePresence } from "motion/react";
+import { toast } from "sonner";
 function PlayerStock({ player }) {
 
   const [socket, setSocket] = useState(null);
   const [CommentIndex, setCommentIndex] = useState(null);
   const session = useSession();
+  const {refreshUser}=useUserStore()
   const [buyDialog,setBuyDialog]=useState(false)
   const [sellDialog,setSellDialog]=useState(false)
   const [showReplies, setShowReplies] = useState(null);
@@ -56,8 +58,16 @@ function PlayerStock({ player }) {
   const [comments,setComments]=useState([
       
   ])
+  const [noOfStocks, setnoOfStocks] = useState(0);
+  const [noOfStocksSell, setnoOfStocksSell] = useState(0);
+  const [ExitPrice, setExitPrice] = useState(0);
+  const [StopLossPrice, setStopLossPrice] = useState(0);
+  const ExitPriceRef=useRef(0)
+  const StopLossPriceRef=useRef(0)
+  useEffect(()=>{ExitPriceRef.current=ExitPrice},[ExitPrice])
+  useEffect(()=>{StopLossPriceRef.current=StopLossPrice},[StopLossPrice])
    const getComments=async()=>{
-    const response=await axios.get('http://localhost:4000/api/comments/getcomments',{
+    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/comments/getcomments`,{
       params:{
         pagetype:"player",
         playerId:player.id,
@@ -84,7 +94,7 @@ function PlayerStock({ player }) {
   }
   const newComment=async(message,parentId,replyto)=>{
     if(!session?.data?.user){
-      alert("Please login to comment")
+      toast.error("Please login to comment")
       return
     }
     const data={
@@ -101,9 +111,14 @@ function PlayerStock({ player }) {
   }
   const newBuytransaction=async(shares,price,total)=>{
     if(!session?.data?.user){
-      alert("Please login to buy stocks")
+      toast.error("Please login to buy stocks")
       return
     }
+    if(parseInt(shares)<=0){
+      toast.error("Please select at least 1 share")
+      return
+    }
+    try{
     const data={
       stocktype:"player",
       stockId:player.stock[0]?.id,
@@ -114,39 +129,63 @@ function PlayerStock({ player }) {
       shares:parseInt(shares),
       total:parseFloat(total),
     }
-    const response=await axios.post('http://localhost:4000/api/stocks/newtrans',data,{
+    const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/newtrans`,data,{
       headers:{
         "Content-Type":"application/json"
       },
       withCredentials:true
     })
+    if(response.data?.error){
+      toast.error(response.data.error)
+      return
+    }
+    const stockholderId=response.data?.stockholderId||response.data?.transaction?.stockholderId
     if(buyStopLoss){
-      setStopLoss("buy",response.data.stockholderId)
+      setStopLoss("buy",stockholderId)
     }
     if(buyTakeProfit){
-      setTakeprofit("buy",response.data.stockholderId)
+      setTakeprofit("buy",stockholderId)
     }
     console.log(response.data)
+    toast.success(`Bought ${shares} shares of ${player.name} at ₹${parseFloat(price).toFixed(2)}`)
+    refreshUser()
+    getStockholder()
+    document.getElementById("Buy_stock").close()
+    setnoOfStocks(0)
+    }catch(e){
+      toast.error(e.message)
+    }
   }
   const getStockholder=async()=>{
-    const response=await axios.get('http://localhost:4000/api/stocks/stockholder',{
+    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/stockholder`,{
       params:{
         stockId:player.stock[0]?.id,
       },
       withCredentials:true
     })
+    if(response.data&&!response.data.error){
     const data={
-      shares:response.data.shares,
-      averageprice:response.data.averageprice
+      shares:response.data.shares||0,
+      averageprice:response.data.averageprice||0
     }
     console.log(data)
     setstockHolder(data)
+    }
   }
   const newSelltransaction=async(shares,price,total)=>{
     if(!session?.data?.user){
-      alert("Please login to sell stocks")
+      toast.error("Please login to sell stocks")
       return
     }
+    if(parseInt(shares)<=0){
+      toast.error("Please select at least 1 share to sell")
+      return
+    }
+    if(parseInt(shares)>stockholder.shares){
+      toast.error(`You only own ${stockholder.shares} shares`)
+      return
+    }
+    try{
     const data={
       stocktype:"player",
       stockId:player.stock[0]?.id,
@@ -158,25 +197,37 @@ function PlayerStock({ player }) {
       total:parseFloat(total),
     }
     
-    const  response=await axios.post('http://localhost:4000/api/stocks/selltrans',data,{
+    const  response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/selltrans`,data,{
       headers:{
         "Content-Type":"application/json"
       },
       withCredentials:true
     })
-     console.log(response.data)
-    if(sellStopLoss&&sellTakeProfit){
-      setStopLoss("sell",response.data.stockholderId)
-      setTakeprofit("sell",response.data.stockholderId)
+    if(response.data?.error){
+      toast.error(response.data.error)
+      return
     }
-    else if(sellStopLoss||sellTakeProfit){
-      alert("Please select both stop loss and take profit to set")
+    console.log(response.data)
+    toast.success(`Sold ${shares} shares of ${player.name} at ₹${parseFloat(price).toFixed(2)}`)
+    refreshUser()
+    getStockholder()
+    document.getElementById("sell_stocks").close()
+    setnoOfStocksSell(0)
+    const stockholderId=response.data?.stockholderId||response.data?.transaction?.stockholderId
+    if(sellStopLoss){
+      setStopLoss("sell",stockholderId)
+    }
+    if(sellTakeProfit){
+      setTakeprofit("sell",stockholderId)
+    }
+    }catch(e){
+      toast.error(e.message)
     }
    
   }
   const setStopLoss=async(type,stockholderId)=>{
     if(!session?.data?.user){
-      alert("Please login to set stop loss")
+      toast.error("Please login to set stop loss")
       return
     }
     const data={
@@ -185,10 +236,10 @@ function PlayerStock({ player }) {
       condition:{
         type:"sl",
         order:type,
-        value:StopLossPrice
+        value:StopLossPriceRef.current
       }
     }
-    const response=await axios.post('http://localhost:4000/api/alerts/newalert',data,{
+    const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,data,{
       headers:{
         "Content-Type":"application/json"
       },
@@ -198,7 +249,8 @@ function PlayerStock({ player }) {
   }
   const setTakeprofit=async(type,stockholderId)=>{
     if(!session?.data?.user){
-      alert("Please login to set take profit")
+      toast.error("Please login to set take profit")
+      return
     }
     const data={
       pagetype:"player",
@@ -206,10 +258,10 @@ function PlayerStock({ player }) {
       condition:{
         type:"tp",
         order:type,
-        value:ExitPrice
+        value:ExitPriceRef.current
       }
     }
-    const response=await axios.post('http://localhost:4000/api/alerts/newalert',data,{
+    const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,data,{
       headers:{
         "Content-Type":"application/json"
       },
@@ -218,30 +270,45 @@ function PlayerStock({ player }) {
     console.log(response.data)
     
   }
+  const getPlayer=async()=>{
+    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getplayer`,{
+      params:{
+        id:player.id
+      }
+    })
+    const pdata=response.data
+    console.log(pdata)
+    setPlayerStock(prev=>({
+      ...prev,
+      price:pdata.stock?.[0].price,
+      marketCapital:pdata.stock[0].total,
+      shares:pdata.stock?.[0].shares
+    }))
+  }
   useEffect(()=>{
     getPlayer()
-  },[player.id])
-  useEffect(()=>{
-    const socket=io("http://localhost:4000")
-    setSocket(socket)
     getComments()
     getStockholder()
-    socket.on("stock-update",(data)=>{
+    const socketInstance=io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000")
+    setSocket(socketInstance)
+    socketInstance.on("connect",()=>{
+      socketInstance.emit("join-room",player.id)
+    })
+    socketInstance.on("stock-update",(data)=>{
       if(data.stockId===player.stock[0]?.id){
         const updatedstock=data.stock
-        setPlayerStock({
+        setPlayerStock(prev=>({
+          ...prev,
           price:updatedstock.price,
           shares:updatedstock.shares,
-          volume:playerStock.volume,
           marketCapital:updatedstock.total,
-          PriceChange:player.PriceChange
-        })
+        }))
         getStockholder()
       }
     })
     
-    socket.on("comment-added",(data)=>{
- 
+    socketInstance.on("comment-added",(data)=>{
+      if(data.playerId!==player.id) return
   const receivedcomment={
     author:data.name,
     id:data.id,
@@ -269,28 +336,13 @@ function PlayerStock({ player }) {
 
 })
     return ()=>{
-      socket.disconnect()
+      socketInstance.emit("leave-room",player.id)
+      socketInstance.off("stock-update")
+      socketInstance.off("comment-added")
+      socketInstance.off("connect")
+      socketInstance.disconnect()
     }
-  },[player.id,playerStock.price])
-  const getPlayer=async()=>{
-    const response=await axios.get('http://localhost:4000/api/others/getplayer',{
-      params:{
-        id:player.id
-      }
-    })
-    const pdata=response.data
-    console.log(pdata)
-    setPlayerStock(prev=>({
-      ...prev,
-      price:pdata.stock?.[0].price,
-      marketCapital:pdata.stock[0].total,
-      shares:pdata.stock?.[0].shares
-    }))
-  }
-  const [noOfStocks, setnoOfStocks] = useState(0);
-  const [noOfStocksSell, setnoOfStocksSell] = useState(0);
-  const [ExitPrice, setExitPrice] = useState(0);
-  const [StopLossPrice, setStopLossPrice] = useState(0);
+  },[player.id])
   const items = [
     {
       title: "Market Price",
@@ -381,6 +433,12 @@ function PlayerStock({ player }) {
                   <div className="badge badge-soft badge-info rounded-sm text-sm px-4">
                     {player.sport}
                   </div>
+                  {stockholder.shares>0&&(
+                    <div className="mt-2 p-2 bg-base-200 rounded-lg text-xs font-poppins">
+                      <p>You hold <span className="font-bold text-info">{stockholder.shares} shares</span> @ avg ₹{stockholder.averageprice?.toFixed(2)}</p>
+                      <p>P&L: <span className={((playerStock.price-stockholder.averageprice)*stockholder.shares)>=0?"text-success":"text-error"}>{((playerStock.price-stockholder.averageprice)*stockholder.shares)>=0?"+":""}{((playerStock.price-stockholder.averageprice)*stockholder.shares).toFixed(2)}</span></p>
+                    </div>
+                  )}
                   <p className="text-sm mt-2">Number of stocks</p>
                   <form action="" className="mt-4 flex flex-col gap-2">
                     <input
@@ -390,6 +448,14 @@ function PlayerStock({ player }) {
                       className="range range-info"
                       value={noOfStocks}
                       onChange={(e) => setnoOfStocks(e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      max={playerStock.shares}
+                      className="input input-info w-full"
+                      value={noOfStocks}
+                      onChange={(e)=>setnoOfStocks(Math.min(parseInt(e.target.value)||0,playerStock.shares))}
                     />
                     <div className="flex justify-between">
                       <p className="ml-2 text-base font-medium font-inter">
@@ -410,7 +476,6 @@ function PlayerStock({ player }) {
                       <label className="label">
                         <input
                           type="checkbox"
-                          defaultChecked
                           className="checkbox"
                           onChange={(e)=>setBuyTakeProfit(e.target.checked)}
                         />
@@ -433,7 +498,6 @@ function PlayerStock({ player }) {
                       <label className="label mt-2">
                         <input
                           type="checkbox"
-                          defaultChecked
                           className="checkbox"
                           onChange={(e)=>setBuyStopLoss(e.target.checked)}
                         />
@@ -460,7 +524,6 @@ function PlayerStock({ player }) {
                       e.preventDefault()
                       newBuytransaction(noOfStocks,playerStock.price,noOfStocks*playerStock.price)
                       setBuyDialog(false)
-                      document.getElementById("Buy_stock").close()
                     }}
                     >
                       Buy
@@ -469,7 +532,7 @@ function PlayerStock({ player }) {
                 </div>
               </dialog>
               <button
-                className="btn btn-active btn-error min-w-full sm:min-w-40 rounded-xl"
+                className={`btn btn-active btn-error min-w-full sm:min-w-40 rounded-xl ${stockholder.shares===0?"btn-disabled":""}`}
                 onClick={() =>
                   document.getElementById("sell_stocks").showModal()
 
@@ -493,6 +556,10 @@ function PlayerStock({ player }) {
                   <div className="badge badge-soft badge-error rounded-sm text-sm px-4">
                     {player.sport}
                   </div>
+                  <div className="mt-2 p-2 bg-base-200 rounded-lg text-xs font-poppins">
+                    <p>You hold <span className="font-bold text-error">{stockholder.shares} shares</span> @ avg ₹{stockholder.averageprice?.toFixed(2)}</p>
+                    <p>P&L: <span className={((playerStock.price-stockholder.averageprice)*stockholder.shares)>=0?"text-success":"text-error"}>{((playerStock.price-stockholder.averageprice)*stockholder.shares)>=0?"+":""}{((playerStock.price-stockholder.averageprice)*stockholder.shares).toFixed(2)}</span></p>
+                  </div>
                   <p className="text-sm mt-2">Number of stocks</p>
                   <form action="" className="mt-4 flex flex-col gap-2">
                     <input
@@ -502,6 +569,14 @@ function PlayerStock({ player }) {
                       className="range range-error"
                       value={noOfStocksSell>stockholder.shares?stockholder.shares:noOfStocksSell}
                       onChange={(e) => setnoOfStocksSell(e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      max={stockholder.shares||0}
+                      className="input input-error w-full"
+                      value={noOfStocksSell}
+                      onChange={(e)=>setnoOfStocksSell(Math.min(parseInt(e.target.value)||0,stockholder.shares))}
                     />
                     <div className="flex justify-between">
                       <p className="ml-2 text-base font-medium font-inter">
@@ -522,7 +597,6 @@ function PlayerStock({ player }) {
                       <label className="label">
                         <input
                           type="checkbox"
-                          defaultChecked
                           className="checkbox"
                           onChange={(e)=>setSellTakeProfit(e.target.checked)}
                         />
@@ -545,7 +619,6 @@ function PlayerStock({ player }) {
                       <label className="label mt-2">
                         <input
                           type="checkbox"
-                          defaultChecked
                           className="checkbox"
                           onChange={(e)=>setSellStopLoss(e.target.checked)}
                         />
@@ -572,7 +645,6 @@ function PlayerStock({ player }) {
                       e.preventDefault()
                       newSelltransaction(noOfStocksSell,playerStock.price,noOfStocksSell*playerStock.price)
                       setSellDialog(false)
-                      document.getElementById("sell_stocks").close()
                     }}
                     >
                       Sell
@@ -597,7 +669,7 @@ function PlayerStock({ player }) {
                 <legend className="fieldset-legend px-2 font-poppins text-neutral-400 p-0">
                   Gender
                 </legend>
-                <p className="px-3 font-poppins font-medium text-sm">Male</p>
+                <p className="px-3 font-poppins font-medium text-sm">{player.gender||"N/A"}</p>
               </fieldset>
               {player.sport === "Cricket" ? (
                 <>
@@ -614,7 +686,7 @@ function PlayerStock({ player }) {
                       Country
                     </legend>
                     <p className="px-3 font-poppins font-medium text-sm">
-                      {player.teamname}
+                      {player.country||player.teamname||"N/A"}
                     </p>
                   </fieldset>
                 </>
@@ -662,7 +734,7 @@ function PlayerStock({ player }) {
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mt-4">
-        <TradeChart />
+        <PriceHistoryGraph stockId={player.stock?.[0]?.id} />
         <PlayerStats player={player} />
       </div>
       <div className="h-full w-full border border-base-content/10 rounded-xl mt-6 flex flex-col">
@@ -853,8 +925,8 @@ function PlayerStock({ player }) {
                                 </div>
                               );
                             })}
-                        </div>
                       </div>
+                    </div>
                     );
                   })}
                 </div>

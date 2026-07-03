@@ -50,30 +50,20 @@ export const betsConsumer=async()=>{
                 for(const i of outcomeamount){
                     totalamount+=i.amount
                 }
-                let allodds=[]
-                for(const i of outcomeamount){
-                    i.percentage=totalamount===0?0:(i.amount/totalamount)*100
-                    let newodds=0
-                    if(i.percentage>0){
-                        newodds=parseFloat((100/i.percentage).toFixed(2))
-                    }
-                    else{
-                        newodds=0
-                    }
+                let answer=[]
+                for(const item of outcomeamount){
+                    const percentage=totalamount===0?0:(item.amount/totalamount)*100
+                    const newodds=percentage===0?1.01:parseFloat((100/percentage).toFixed(2))
                     
                     const result=await prisma.matchbetoutcomes.update({
-                        where:{id:i.outcomeId},
+                        where:{id:item.outcomeId},
                         data:{
                             odds:isFinite(newodds)?newodds:0,
-                            total:isFinite(i.amount)?i.amount:0
+                            total:isFinite(item.amount)?item.amount:0
                         }
                     })
-                    allodds.push({id:result.teamId,odds:result.odds})
+                    answer.push({odds:result.odds,teamId:result.teamId,amount:item.amount,matchbetId:item.matchbetId,name:item.name,matchoutcomesId:item.outcomeId})
                 }
-                const answer=[
-                    {odds:allodds[0].odds,teamId:allodds[0].id,amount:outcomeamount[0].amount,matchbetId:outcomeamount[0].matchbetId,name:outcomeamount[0].name,matchoutcomesId:outcomeamount[0].outcomeId},
-                    {odds:allodds[1].odds,teamId:allodds[1].id,amount:outcomeamount[1].amount,matchbetId:outcomeamount[1].matchbetId,name:outcomeamount[1].name,matchoutcomesId:outcomeamount[1].outcomeId}
-                ]
                 io.emit('betting-update',answer)
                 await heartbeat()
                 console.log('betting update done')

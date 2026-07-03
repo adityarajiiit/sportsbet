@@ -1,5 +1,5 @@
 "use client";
-import React,{useEffect} from "react";
+import React,{useEffect,useRef} from "react";
 import Image from "next/image";
 import { IoMdPricetags } from "react-icons/io";
 import { TbCoinRupeeFilled } from "react-icons/tb";
@@ -21,12 +21,15 @@ import Avatar from 'react-avatar'
 import { motion, AnimatePresence } from "motion/react";
 import { FaReply } from "react-icons/fa";
 import { MdCancel } from "react-icons/md";
-import TradeChart from "./chart";
+import PriceHistoryGraph from "./PriceHistoryGraph";
 import axios from 'axios'
+import { useUserStore } from "@/app/store/useUserStore.jsx";
+import { toast } from "sonner";
 function TeamStock({ team }) {
     const [socket, setSocket] = useState(null);
     const [CommentIndex, setCommentIndex] = useState(null);
     const session = useSession();
+    const {refreshUser}=useUserStore()
     const [showReplies, setShowReplies] = useState(null);
     const [replyIndex, setReplyIndex] = useState(null);
     const [usercomment,setUsercomment]=useState({
@@ -35,8 +38,28 @@ function TeamStock({ team }) {
     const [comments,setComments]=useState([
         
     ])
+    const [stockholder,setstockHolder]=useState({shares:0,averageprice:0})
+    const [buyTakeProfit,setBuyTakeProfit]=useState(false)
+    const [buyStopLoss,setBuyStopLoss]=useState(false)
+    const [sellTakeProfit,setSellTakeProfit]=useState(false)
+    const [sellStopLoss,setSellStopLoss]=useState(false)
+    const [teamStock,setTeamStock]=useState({
+      price:team.price,
+      volume:team.volume,
+      marketCapital:team.marketCapital,
+      PriceChange:team.PriceChange,
+      shares:team.stock?.[0]?.shares||1000
+    })
+    const [noOfStocks, setnoOfStocks] = useState(0);
+    const [noOfStocksSell, setnoOfStocksSell] = useState(0);
+    const [ExitPrice, setExitPrice] = useState(0);
+    const [StopLossPrice, setStopLossPrice] = useState(0);
+    const ExitPriceRef=useRef(0)
+    const StopLossPriceRef=useRef(0)
+    useEffect(()=>{ExitPriceRef.current=ExitPrice},[ExitPrice])
+    useEffect(()=>{StopLossPriceRef.current=StopLossPrice},[StopLossPrice])
      const getComments=async()=>{
-      const response=await axios.get('http://localhost:4000/api/comments/getcomments',{
+      const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/comments/getcomments`,{
         params:{
           pagetype:"team",
           teamId:team.id,
@@ -63,7 +86,7 @@ function TeamStock({ team }) {
     }
     const newComment=async(message,parentId,replyto)=>{
       if(!session?.data?.user){
-        alert("Please login to comment")
+        toast.error("Please login to comment")
         return
       }
       const data={
@@ -78,13 +101,174 @@ function TeamStock({ team }) {
       socket.emit('new-comment',{data})
     
     }
-  
+    const getStockholder=async()=>{
+      const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/stockholder`,{
+        params:{
+          stockId:team.stock?.[0]?.id,
+        },
+        withCredentials:true
+      })
+      if(response.data&&!response.data.error){
+        setstockHolder({
+          shares:response.data.shares||0,
+          averageprice:response.data.averageprice||0
+        })
+      }
+    }
+    const newBuytransaction=async(shares,price,total)=>{
+      if(!session?.data?.user){
+        toast.error("Please login to buy stocks")
+        return
+      }
+      if(parseInt(shares)<=0){
+        toast.error("Please select at least 1 share")
+        return
+      }
+      try{
+      const data={
+        stocktype:"team",
+        stockId:team.stock?.[0]?.id,
+        teamId:team.id,
+        userId:session?.data?.user?.id,
+        type:"buy",
+        price:parseFloat(price),
+        shares:parseInt(shares),
+        total:parseFloat(total),
+      }
+      const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/newtrans`,data,{
+        headers:{
+          "Content-Type":"application/json"
+        },
+        withCredentials:true
+      })
+      if(response.data?.error){
+        toast.error(response.data.error)
+        return
+      }
+      const stockholderId=response.data?.stockholderId||response.data?.transaction?.stockholderId
+      if(buyStopLoss){
+        setStopLossAlert("buy",stockholderId)
+      }
+      if(buyTakeProfit){
+        setTakeprofitAlert("buy",stockholderId)
+      }
+      console.log(response.data)
+      toast.success(`Bought ${shares} shares of ${team.name} at ₹${parseFloat(price).toFixed(2)}`)
+      refreshUser()
+      getStockholder()
+      document.getElementById("Buy_stock").close()
+      setnoOfStocks(0)
+      }catch(e){
+        toast.error(e.message)
+      }
+    }
+    const newSelltransaction=async(shares,price,total)=>{
+      if(!session?.data?.user){
+        toast.error("Please login to sell stocks")
+        return
+      }
+      if(parseInt(shares)<=0){
+        toast.error("Please select at least 1 share to sell")
+        return
+      }
+      if(parseInt(shares)>stockholder.shares){
+        toast.error(`You only own ${stockholder.shares} shares`)
+        return
+      }
+      try{
+      const data={
+        stocktype:"team",
+        stockId:team.stock?.[0]?.id,
+        teamId:team.id,
+        userId:session?.data?.user?.id,
+        type:"sell",
+        price:parseFloat(price),
+        shares:parseInt(shares),
+        total:parseFloat(total),
+      }
+      const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/selltrans`,data,{
+        headers:{
+          "Content-Type":"application/json"
+        },
+        withCredentials:true
+      })
+      if(response.data?.error){
+        toast.error(response.data.error)
+        return
+      }
+      console.log(response.data)
+      toast.success(`Sold ${shares} shares of ${team.name} at ₹${parseFloat(price).toFixed(2)}`)
+      refreshUser()
+      getStockholder()
+      document.getElementById("sell_stocks").close()
+      setnoOfStocksSell(0)
+      const stockholderId=response.data?.stockholderId||response.data?.transaction?.stockholderId
+      if(sellStopLoss){
+        setStopLossAlert("sell",stockholderId)
+      }
+      if(sellTakeProfit){
+        setTakeprofitAlert("sell",stockholderId)
+      }
+      }catch(e){
+        toast.error(e.message)
+      }
+    }
+    const setStopLossAlert=async(type,stockholderId)=>{
+      const data={
+        pagetype:"team",
+        stockholderId:stockholderId,
+        condition:{
+          type:"sl",
+          order:type,
+          value:StopLossPriceRef.current
+        }
+      }
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,data,{
+        headers:{
+          "Content-Type":"application/json"
+        },
+        withCredentials:true
+      })
+    }
+    const setTakeprofitAlert=async(type,stockholderId)=>{
+      const data={
+        pagetype:"team",
+        stockholderId:stockholderId,
+        condition:{
+          type:"tp",
+          order:type,
+          value:ExitPriceRef.current
+        }
+      }
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,data,{
+        headers:{
+          "Content-Type":"application/json"
+        },
+        withCredentials:true
+      })
+    }
     useEffect(()=>{
-      const socket=io("http://localhost:4000")
-      setSocket(socket)
+      const socketInstance=io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000")
+      setSocket(socketInstance)
       getComments()
-      socket.on("comment-added",(data)=>{
-  
+      getStockholder()
+      socketInstance.on("connect",()=>{
+        socketInstance.emit("join-room",team.id)
+      })
+      socketInstance.on("stock-update",(data)=>{
+        if(data.stockId===team.stock?.[0]?.id){
+          const updatedstock=data.stock
+          setTeamStock(prev=>({
+            ...prev,
+            price:updatedstock.price,
+            shares:updatedstock.shares,
+            marketCapital:updatedstock.total,
+          }))
+          getStockholder()
+        }
+      })
+      socketInstance.on("comment-added",(data)=>{
+        if(data.teamId!==team.id) return
     const receivedcomment={
       author:data.name,
       id:data.id,
@@ -111,17 +295,17 @@ function TeamStock({ team }) {
     }
   })
       return ()=>{
-        socket.disconnect()
+        socketInstance.emit("leave-room",team.id)
+        socketInstance.off("stock-update")
+        socketInstance.off("comment-added")
+        socketInstance.off("connect")
+        socketInstance.disconnect()
       }
     },[team.id])
-  const [noOfStocks, setnoOfStocks] = useState(0);
-  const [noOfStocksSell, setnoOfStocksSell] = useState(0);
-  const [ExitPrice, setExitPrice] = useState(0);
-  const [StopLossPrice, setStopLossPrice] = useState(0);
   const items = [
     {
       title: "Market Price",
-      description: team.price,
+      description: teamStock.price,
       icon: (
         <IoMdPricetags className="size-8 text-warning p-2 bg-warning/15 rounded-full" />
       ),
@@ -130,7 +314,7 @@ function TeamStock({ team }) {
 
     {
       title: "Volume",
-      description: team.volume,
+      description: teamStock.volume,
       icon: (
         <FaUsers className="size-8 text-warning p-2 bg-warning/15 rounded-full" />
       ),
@@ -138,7 +322,7 @@ function TeamStock({ team }) {
     },
     {
       title: "Market Capital",
-      description: team.marketCapital,
+      description: teamStock.marketCapital,
       icon: (
         <TrendingUp className="size-8 text-warning p-2 bg-warning/15 rounded-full" />
       ),
@@ -146,7 +330,7 @@ function TeamStock({ team }) {
     },
     {
       title: "Price Change (1D)",
-      description: team.PriceChange,
+      description: teamStock.PriceChange,
       icon: (
         <TbCoinRupeeFilled className="size-8 text-warning p-2 bg-warning/15 rounded-full" />
       ),
@@ -210,15 +394,29 @@ function TeamStock({ team }) {
                   <div className="badge badge-soft badge-info rounded-sm text-sm px-4">
                     {team.sport}
                   </div>
+                  {stockholder.shares>0&&(
+                    <div className="mt-2 p-2 bg-base-200 rounded-lg text-xs font-poppins">
+                      <p>You hold <span className="font-bold text-info">{stockholder.shares} shares</span> @ avg ₹{stockholder.averageprice?.toFixed(2)}</p>
+                      <p>P&L: <span className={((teamStock.price-stockholder.averageprice)*stockholder.shares)>=0?"text-success":"text-error"}>{((teamStock.price-stockholder.averageprice)*stockholder.shares)>=0?"+":""}{((teamStock.price-stockholder.averageprice)*stockholder.shares).toFixed(2)}</span></p>
+                    </div>
+                  )}
                   <p className="text-sm mt-2">Number of stocks</p>
                   <form action="" className="mt-4 flex flex-col gap-2">
                     <input
                       type="range"
                       min={0}
-                      max="100"
+                      max={teamStock.shares}
                       className="range range-info"
                       value={noOfStocks}
                       onChange={(e) => setnoOfStocks(e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      max={teamStock.shares}
+                      className="input input-info w-full"
+                      value={noOfStocks}
+                      onChange={(e)=>setnoOfStocks(Math.min(parseInt(e.target.value)||0,teamStock.shares))}
                     />
                     <div className="flex justify-between">
                       <p className="ml-2 text-base font-medium font-inter">
@@ -228,7 +426,7 @@ function TeamStock({ team }) {
                       <p className="ml-2 text-base font-medium font-inter">
                         Total amount <br />
                         <span className="text-xl">
-                          &#8377;{noOfStocks * team.price}
+                          &#8377;{(noOfStocks * teamStock.price).toFixed(2)}
                         </span>
                       </p>
                     </div>
@@ -239,8 +437,8 @@ function TeamStock({ team }) {
                       <label className="label">
                         <input
                           type="checkbox"
-                          defaultChecked
                           className="checkbox"
+                          onChange={(e)=>setBuyTakeProfit(e.target.checked)}
                         />
                         Take Profit
                       </label>
@@ -261,8 +459,8 @@ function TeamStock({ team }) {
                       <label className="label mt-2">
                         <input
                           type="checkbox"
-                          defaultChecked
                           className="checkbox"
+                          onChange={(e)=>setBuyStopLoss(e.target.checked)}
                         />
                         Stop Loss
                       </label>
@@ -282,14 +480,19 @@ function TeamStock({ team }) {
                       />
                     </fieldset>
 
-                    <button className="btn btn-info font-poppins text-base mt-1">
+                    <button className="btn btn-info font-poppins text-base mt-1"
+                    onClick={(e)=>{
+                      e.preventDefault()
+                      newBuytransaction(noOfStocks,teamStock.price,noOfStocks*teamStock.price)
+                    }}
+                    >
                       Buy
                     </button>
                   </form>
                 </div>
               </dialog>
               <button
-                className="btn btn-active btn-error min-w-full sm:min-w-40 rounded-xl"
+                className={`btn btn-active btn-error min-w-full sm:min-w-40 rounded-xl ${stockholder.shares===0?"btn-disabled":""}`}
                 onClick={() =>
                   document.getElementById("sell_stocks").showModal()
                 }
@@ -312,15 +515,27 @@ function TeamStock({ team }) {
                   <div className="badge badge-soft badge-error rounded-sm text-sm px-4">
                     {team.sport}
                   </div>
+                  <div className="mt-2 p-2 bg-base-200 rounded-lg text-xs font-poppins">
+                    <p>You hold <span className="font-bold text-error">{stockholder.shares} shares</span> @ avg ₹{stockholder.averageprice?.toFixed(2)}</p>
+                    <p>P&L: <span className={((teamStock.price-stockholder.averageprice)*stockholder.shares)>=0?"text-success":"text-error"}>{((teamStock.price-stockholder.averageprice)*stockholder.shares)>=0?"+":""}{((teamStock.price-stockholder.averageprice)*stockholder.shares).toFixed(2)}</span></p>
+                  </div>
                   <p className="text-sm mt-2">Number of stocks</p>
                   <form action="" className="mt-4 flex flex-col gap-2">
                     <input
                       type="range"
                       min={0}
-                      max="100"
+                      max={stockholder.shares||0}
                       className="range range-error"
                       value={noOfStocksSell}
                       onChange={(e) => setnoOfStocksSell(e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      min={0}
+                      max={stockholder.shares||0}
+                      className="input input-error w-full"
+                      value={noOfStocksSell}
+                      onChange={(e)=>setnoOfStocksSell(Math.min(parseInt(e.target.value)||0,stockholder.shares))}
                     />
                     <div className="flex justify-between">
                       <p className="ml-2 text-base font-medium font-inter">
@@ -330,7 +545,7 @@ function TeamStock({ team }) {
                       <p className="ml-2 text-base font-medium font-inter">
                         Total amount <br />
                         <span className="text-xl">
-                          &#8377;{noOfStocksSell * team.price}
+                          &#8377;{(noOfStocksSell * teamStock.price).toFixed(2)}
                         </span>
                       </p>
                     </div>
@@ -341,8 +556,8 @@ function TeamStock({ team }) {
                       <label className="label">
                         <input
                           type="checkbox"
-                          defaultChecked
                           className="checkbox"
+                          onChange={(e)=>setSellTakeProfit(e.target.checked)}
                         />
                         Take Profit
                       </label>
@@ -363,8 +578,8 @@ function TeamStock({ team }) {
                       <label className="label mt-2">
                         <input
                           type="checkbox"
-                          defaultChecked
                           className="checkbox"
+                          onChange={(e)=>setSellStopLoss(e.target.checked)}
                         />
                         Stop Loss
                       </label>
@@ -386,9 +601,10 @@ function TeamStock({ team }) {
 
                     <button
                       className="btn btn-error font-poppins text-base mt-1"
-                      onClick={() =>
-                        document.getElementById("sell_stocks").showModal()
-                      }
+                      onClick={(e)=>{
+                        e.preventDefault()
+                        newSelltransaction(noOfStocksSell,teamStock.price,noOfStocksSell*teamStock.price)
+                      }}
                     >
                       Sell
                     </button>
@@ -466,7 +682,7 @@ function TeamStock({ team }) {
         </div>
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mt-4">
-        <TradeChart />
+        <PriceHistoryGraph stockId={team.stock?.[0]?.id} />
         <TeamStats team={team} />
       </div>
       <div className="h-full w-full border border-base-content/10 rounded-xl mt-6 flex flex-col">
@@ -657,8 +873,8 @@ function TeamStock({ team }) {
                                 </div>
                               );
                             })}
-                        </div>
                       </div>
+                    </div>
                     );
                   })}
                 </div>

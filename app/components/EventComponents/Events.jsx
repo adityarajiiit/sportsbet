@@ -124,22 +124,22 @@ useEffect(()=>{
       fetchLiveMatches()
       fetchUpcomingMatches()
       fetchRecentMatches()
-      const socket=io("http://localhost:4000")
+      const socket=io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000")
       socket.on("connect",()=>{
         console.log("connected to socket server")
       })
       socket.on('match-update',(data)=>{
         
         if(data.topic==="live-matches"){
-          setLiveevents(data)
+          setLiveevents(data.matches||[])
           console.log(data)
         }
         else if(data.topic==="upcoming-matches"){
-          setUpcomingEvents(data)
+          setUpcomingEvents(data.matches||[])
           console.log(data)
         }
         else if(data.topic==="recent-matches"){
-          setRecentEvents(data)
+          setRecentEvents(data.matches||[])
           console.log(data)
         }
       })
@@ -154,20 +154,25 @@ useEffect(()=>{
       const allmatches=[...liveevents,...upcomingEvents,...recentEvents]
       setSportEvents((sportsprev)=>{
         const updatedSports=sportsprev.map((sport)=>{
-          if(sport.title==="Cricket"){
+          if(sport.title==="All"){
             return{...sport,events:allmatches}
+          }
+          if(sport.title==="Cricket"){
+            return{...sport,events:allmatches.filter(m=>m.sportType==="Cricket"||!m.sportType)}
+          }
+          if(sport.title==="Football"){
+            return{...sport,events:allmatches.filter(m=>m.sportType==="Football")}
           }
           return sport
         })
         return updatedSports
       })
-    
    },[liveevents,upcomingEvents,recentEvents])
 
     const fetchLiveMatches=async()=>{
-      const response=await axios.get('http://localhost:4000/api/others/livematches')
+      const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/livematches`)
       console.log(response.data)
-      const matches=response.data.map(match=>({
+      const matches=response.data.matches.map(match=>({
         title:match.title,
         team1:match.team1.teamSName,
         team2:match.team2.teamSName,
@@ -182,13 +187,14 @@ useEffect(()=>{
         matchId:match.cricbuzzmatchId,
         status:match.status,
         date:new Date(match.start).toLocaleString(),
-        type:"live"
+        type:"live",
+        sportType:match.sportType||"Cricket"
       }))
       setLiveevents(matches)
     }
     const fetchUpcomingMatches=async()=>{
-      const response=await axios.get('http://localhost:4000/api/others/upcomingmatches')
-      const matches=response.data.map(match=>({
+      const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/upcomingmatches`)
+      const matches=response.data.matches.map(match=>({
         title:match.title,
         team1:match.team1.teamSName,
         team2:match.team2.teamSName,
@@ -203,14 +209,15 @@ useEffect(()=>{
         matchId:match.cricbuzzmatchId,
         status:match.status,
         date:new Date(match.start).toLocaleString(),
-        type:"upcoming"
+        type:"upcoming",
+        sportType:match.sportType||"Cricket"
       }))
       console.log(matches)
       setUpcomingEvents(matches)
     }
     const fetchRecentMatches=async()=>{
-      const response=await axios.get('http://localhost:4000/api/others/recentmatches')
-      const matches=response.data.map(match=>({
+      const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/recentmatches`)
+      const matches=response.data.matches.map(match=>({
         title:match.title,
         team1:match.team1.teamSName,
         team2:match.team2.teamSName,
@@ -225,7 +232,8 @@ useEffect(()=>{
         matchId:match.cricbuzzmatchId,
         status:match.status,
         date:new Date(match.start).toLocaleString(),
-        type:"recent"
+        type:"recent",
+        sportType:match.sportType||"Cricket"
       }))
       console.log(matches)
       setRecentEvents(matches)
@@ -241,7 +249,7 @@ useEffect(()=>{
   });
 const allmatches = filteredSport.flatMap(sport=>sport.events)
   const NoOfEventPerPage = 12;
-  const TotalPages = Math.ceil(allmatches.length / NoOfEventPerPage)-1;
+  const TotalPages = Math.ceil(allmatches.length / NoOfEventPerPage);
 const [currentPage, setCurrentPage] = useState(0);
 const StartIndex = currentPage * NoOfEventPerPage;
 const EndIndex = Math.min(StartIndex + NoOfEventPerPage, 

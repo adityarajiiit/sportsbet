@@ -1,13 +1,50 @@
 "use client";
-import React, { use } from "react";
+import React from "react";
 import Image from "next/image";
 import { FaBell } from "react-icons/fa";
 import { FaFlag } from "react-icons/fa";
 import { MdEvent } from "react-icons/md";
-import {io} from "socket.io-client";
-import { useState,useEffect } from "react";
+import { useState } from "react";
 import axios from "axios";
+import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 function UpcomingEventCard({ title, team1, team2,  image1, image2, matchId,status,date }) {
+  const session=useSession()
+  const [notifyMinutes,setNotifyMinutes]=useState(30)
+  const [notifying,setNotifying]=useState(false)
+  const [notified,setNotified]=useState(false)
+  const modalId=`notify_${matchId}`
+  const handleNotify=async()=>{
+    if(!session?.data?.user){
+      toast.error("Please login to set reminder")
+      return
+    }
+    setNotifying(true)
+    try{
+      const matchTime=new Date(date).getTime()
+      const reminderTime=new Date(matchTime-(notifyMinutes*60*1000))
+      if(reminderTime<=new Date()){
+        toast.error("Match is too close to set reminder")
+        setNotifying(false)
+        return
+      }
+      await axios.post(`${process.env.NEXT_PUBLIC_API_URL||"http://localhost:4000"}/api/reminder/newreminder`,{
+        matchId:matchId||null,
+        message:`${title} starts in ${notifyMinutes} minutes`,
+        time:reminderTime.toISOString(),
+        type:"match"
+      },{
+        withCredentials:true
+      })
+      toast.success(`Reminder set for ${notifyMinutes} min before match`)
+      setNotified(true)
+      document.getElementById(modalId).close()
+    }catch(e){
+      toast.error(e.message)
+    }finally{
+      setNotifying(false)
+    }
+  }
   return (
     <div className="p-5 flex flex-col justify-center items-center bg-base-200 gap-2 rounded-xl border border-neutral-content/5 h-[205px]">
       <div className="flex justify-between items-center w-full">
@@ -43,9 +80,44 @@ function UpcomingEventCard({ title, team1, team2,  image1, image2, matchId,statu
           </div>
         </div>
       </div>
-      <button className="btn rounded-full btn-warning w-full mt-2">
-        <FaBell /> Notify Me
+      <button
+        className={`btn rounded-full w-full mt-2 ${notified?"btn-success":"btn-warning"}`}
+        onClick={()=>document.getElementById(modalId).showModal()}
+      >
+        <FaBell /> {notified?"Reminder Set":"Notify Me"}
       </button>
+      <dialog id={modalId} className="modal">
+        <div className="modal-box">
+          <form method="dialog">
+            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+          </form>
+          <h3 className="text-base font-semibold font-poppins">{title}</h3>
+          <p className="text-xs font-poppins text-neutral-400 mt-1">{team1} vs {team2}</p>
+          <p className="text-sm font-poppins mt-4">Remind me before match</p>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {[15,30,60,120].map(m=>(
+              <button
+                key={m}
+                className={`btn btn-sm rounded-full font-poppins ${notifyMinutes===m?"btn-warning":"btn-ghost border border-base-content/20"}`}
+                onClick={()=>setNotifyMinutes(m)}
+              >
+                {m>=60?`${m/60}h`:`${m}m`}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs font-poppins text-neutral-400 mt-3">
+            You will be notified {notifyMinutes} minutes before the match starts
+          </p>
+          <button
+            className="btn btn-warning w-full mt-4 font-poppins"
+            onClick={handleNotify}
+            disabled={notifying}
+          >
+            <FaBell />
+            {notifying?"Setting reminder...":"Set Reminder"}
+          </button>
+        </div>
+      </dialog>
       <div className="w-full flex justify-center items-center mt-2">
         <p>{status}</p>
       </div>

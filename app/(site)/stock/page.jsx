@@ -35,7 +35,7 @@ function Stocks() {
   const [category, setcategory] = useState("Player");
   
   const getPlayers=async()=>{
-    const response=await axios.get('http://localhost:4000/api/others/gettrendingplayers')
+    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/gettrendingplayers`)
     const players=response.data.map((player)=>{
       return {
         id:player.id,
@@ -52,7 +52,7 @@ function Stocks() {
           {
             type:player.career[0]?.type||"ODI",
             bowling:player.career[0]?.bowling||null,
-            batting:player.career[0]?.bowling||null,
+            batting:player.career[0]?.batting||null,
           }
         ],
         stock:player.stock
@@ -62,7 +62,7 @@ function Stocks() {
     setPlayers(players)
   }
   const getTeams=async()=>{
-    const response=await axios.get('http://localhost:4000/api/others/gettrendingteams')
+    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/gettrendingteams`)
     const teams=response.data.map((team)=>{
       return{
         id:team.id,
@@ -84,7 +84,7 @@ setTeams(teams)
   }
  
   const getSearchResults=async(query)=>{
-    const response=await axios.get('http://localhost:4000/api/stocks/search',
+    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/search`,
       {
         params:{
           q:query

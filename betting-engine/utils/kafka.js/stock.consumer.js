@@ -60,7 +60,6 @@ export const stockConsumer=async()=>{
                 const updatedstock=await prisma.stock.update({
                     where:{id:data.stockId},
                     data:{
-                        shares:newshares,
                         price:newprice,
                         total:newtotal
                     }

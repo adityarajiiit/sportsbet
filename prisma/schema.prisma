@@ -30,10 +30,12 @@ model User{
   alerts Alert[]
   reminders Reminder[]
   comments Comment[]
+  chatMessages ChatMessage[] @relation("userToChatMessage")
   notifications Notification[]
   wallet Wallet? @relation("usertoken")
   orders Order[] @relation("userorders")
   files File[] @relation("userfiles")
+  withdrawalRequests WithdrawalRequest[]
 }
 enum Role{
   Guest
@@ -83,8 +85,10 @@ model Match{
   seriesname String?
   cricbuzzseriesId Int?
   status String @default("Upcoming")
+  sportType String @default("Cricket")
   result String?
   scorecard Json?
+  liveScore Json?
   matchState String @default("Upcoming")
   bets Bet[] @relation("betmatch")
   comments Comment[]
@@ -350,6 +354,7 @@ model Matchbet{
   bets Bet[] @relation("matchbets")
   status String @default("Upcoming")
   outcomes Matchbetoutcomes[] @relation("spotbetoutcomes")
+  oddsHistory OddsHistory[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -411,4 +416,92 @@ model File{
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user User @relation("userfiles",fields:[userId],references:[id],onDelete:Cascade)
+}
+
+model PriceHistory{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  stockId String @db.ObjectId
+  price Float
+  pagetype pagetype
+  createdAt DateTime @default(now())
+  @@index([stockId])
+  @@index([createdAt])
+}
+
+model WithdrawalRequest{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  amount Float
+  status withdrawalstatus @default(pending)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@index([userId])
+  @@index([status])
+}
+
+enum withdrawalstatus{
+  pending
+  approved
+  rejected
+}
+
+model OddsHistory{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  matchbetId String @db.ObjectId
+  teamId Int
+  teamname String
+  odds Float
+  timestamp DateTime @default(now())
+  matchbet Matchbet @relation(fields:[matchbetId],references:[id],onDelete:Cascade)
+  @@index([matchbetId])
+}
+
+model AIInsight{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  matchId String @db.ObjectId
+  type String
+  title String
+  content Json
+  summary String
+  score Float
+  metadata Json?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([matchId])
+  @@index([type])
+}
+
+model ChatMessage{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId String
+  userId String @db.ObjectId
+  user User @relation("userToChatMessage",fields:[userId],references:[id],onDelete:Cascade)
+  role String
+  content String
+  context Json?
+  metadata Json?
+  createdAt DateTime @default(now())
+  @@index([sessionId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ScrapedDocument{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  source String
+  url String
+  title String
+  content String
+  hash String @unique
+  category String
+  entities Json?
+  vectorIds String[]
+  isEmbedded Boolean @default(false)
+  scrapedAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([source])
+  @@index([category])
+  @@index([scrapedAt])
 }

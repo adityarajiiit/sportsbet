@@ -8,7 +8,6 @@ import { HiCalendarDateRange } from "react-icons/hi2";
 import { SiReactivex } from "react-icons/si";
 import { GiCardAceSpades } from "react-icons/gi";
 import { GiProfit } from "react-icons/gi";
-import { useRouter } from "next/navigation";
 import { MdSavings } from "react-icons/md";
 import { FaBitcoin } from "react-icons/fa";
 import { BiSolidNetworkChart } from "react-icons/bi";
@@ -19,49 +18,91 @@ import { GiTrophy } from "react-icons/gi";
 import { useThemeStore } from "@/app/store/useThemestore.jsx";
 import { Tabs } from "@/components/ui/tab";
 import axios from 'axios'
-const dashboard = () => {
-  const [amount, setAmount] = useState(0.01);
-  const [withdraw, setWithdraw] = useState(0.01);
-  const session = useSession();
-  const { theme, setTheme } = useThemeStore();
-  const [user,setUser]=useState({})
-  const router=useRouter()
+import { useUserStore } from "@/app/store/useUserStore.jsx";
+import { toast } from "sonner";
+const dashboard=()=>{
+  const [amount,setAmount]=useState("");
+  const [withdraw,setWithdraw]=useState(0.01);
+  const [loading,setLoading]=useState(false);
+  const session=useSession();
+  const {theme,setTheme}=useThemeStore();
+  const {user,refreshUser}=useUserStore()
   const handlePayment=async(e)=>{
     e.preventDefault();
-    const response=await axios.post("http://localhost:4000/api/crypto/order",{
-      amount:parseFloat(amount)
-    },
-  {
-    withCredentials:true
-  })
-    console.log(amount)
-    router.push(response.data.url)
-    console.log(response.data)
+    const parsedAmount=Number.parseInt(amount,10)
+    if(!amount||Number.isNaN(parsedAmount)||parsedAmount<=0){
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    setLoading(true);
+    try{
+      const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/crypto/mockdeposit`,{
+        amount:parsedAmount
+      },{
+        withCredentials:true
+      })
+      if(response.data?.success){
+        toast.success("Mock deposit successful")
+        setAmount("")
+        document.getElementById("Add_balance").close()
+        refreshUser()
+      }else if(response.data?.error){
+        toast.error(response.data.error)
+      }
+    }catch(error){
+      toast.error(error.message)
+    }finally{
+      setLoading(false);
+    }
   }
   const handleWithdraw=async(e)=>{
     e.preventDefault();
-    // Add your withdraw API logic here, e.g.:
-    // const response=await axios.post("http://localhost:4000/api/crypto/withdraw",{
-    //   amount:parseFloat(withdraw)
-    // },
-    // {
-    //   withCredentials:true
-    // })
-    // console.log(withdraw)
-    // console.log(response.data)
-    // Implement actual withdraw handling as needed
+    const parsedAmount=Number.parseFloat(withdraw)
+    if(!withdraw||Number.isNaN(parsedAmount)||parsedAmount<=0){
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    try{
+      const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/withdrawal/withdraw`,{
+        amount:parsedAmount
+      },{
+        withCredentials:true
+      })
+      if(response.data?.success){
+        toast.success("Withdrawal request submitted")
+        setWithdraw(0.01)
+        document.getElementById("Withdraw").close()
+        refreshUser()
+      }else if(response.data?.error){
+        toast.error(response.data.error)
+      }
+    }catch(error){
+      toast.error(error.message)
+    }
   }
   useEffect(()=>
     {
-    getUsers()
+    refreshUser()
   },[])
-  const getUsers=async()=>{
-    const response=await axios.get('http://localhost:4000/api/others/getuser',{
-      withCredentials:true
-    })
-    console.log(response.data)
-    setUser(response.data)
-  }
+  useEffect(()=>{
+    const searchParams=new URLSearchParams(window.location.search)
+    const payment=searchParams.get('payment')
+    const shouldCleanup=payment==='success'||payment==='cancelled'
+    if(payment==='success'){
+      toast.success('Payment successful')
+      refreshUser()
+    }
+    if(payment==='cancelled'){
+      toast.error('Payment cancelled')
+    }
+    if(shouldCleanup){
+      searchParams.delete('payment')
+      searchParams.delete('orderId')
+      const queryString=searchParams.toString()
+      const nextUrl=queryString?`${window.location.pathname}?${queryString}`:window.location.pathname
+      window.history.replaceState({},'',nextUrl)
+    }
+  },[])
   if (session.status === "loading") {
     return (
       <div className="mt-20 h-[40rem] w-full flex flex-col justify-center items-center gap-4 text-accent">
@@ -70,6 +111,8 @@ const dashboard = () => {
       </div>
     );
   }
+  const walletBalance = Number(user?.wallet?.balance ?? 0);
+  const winningAmount = Number(user?.winningamount ?? 0);
   const dashboard = [
     {
       name: "Bets",
@@ -83,7 +126,7 @@ const dashboard = () => {
       icon: (
         <GiProfit className="size-6 p-1 rounded-xl bg-warning/10 fill-warning" />
       ),
-      value: "$" + user?.profitamount,
+      value: "₹" + user?.profitamount,
     },
     {
       name: "Player Stocks",
@@ -101,21 +144,35 @@ const dashboard = () => {
     },
   ];
   const TableDatas=user?.bets?.map((bet)=>{
+    let payoutValue="Pending"
+    if(bet?.status==="won"){
+      payoutValue=`+ ₹${(bet.amount*bet.odds).toFixed(2)}`
+    }
+    if(bet?.status==="sold"){
+      payoutValue=`+ ₹${(bet.result?.price||0).toFixed(2)}`
+    }
+    if(bet?.status==="lost"){
+      payoutValue=`- ₹${bet.amount.toFixed(2)}`
+    }
     return{
       event:bet?.match?.title,
       date:new Date(bet?.match?.start).toDateString(),
       bet:bet?.amount,
       multiplier:bet?.odds,
-      payout:"not yet"
+      payout:payoutValue
     }
   })
   const TradeData=user?.stockTransactions?.map((stock)=>{
+    let payoutValue="Holding"
+    if(stock?.type==="sell"){
+      payoutValue=`+ ₹${(stock.price*stock.shares).toFixed(2)}`
+    }
     return{
       stock:stock?.stock?.name,
       category:stock?.stock?.pagetype,
       price:stock?.price.toFixed(2),
       PriceChange:(stock?.price-stock?.stock?.price).toFixed(2),
-      payout:"not yet"
+      payout:payoutValue
     }
   })
   const tabs = [
@@ -170,7 +227,7 @@ const dashboard = () => {
           <p className="text-sm font-inter text-gray-300 w-4/6">
             Add balance and withdraw your existing savings.
           </p>
-          <h1 className="text-3xl font-semibold font-inter mt-2">$30</h1>
+          <h1 className="text-3xl font-semibold font-inter mt-2">₹{walletBalance.toFixed(2)}</h1>
           <span className="text-sm font-poppins font-light text-neutral-400">
             Balance
           </span>
@@ -191,7 +248,7 @@ const dashboard = () => {
                     Deposit
                   </p>
                   <span className="text-lg -mt-0.5 font-semibold font-inter">
-                    $0
+                    ₹{walletBalance.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -215,34 +272,33 @@ const dashboard = () => {
                   <p className="pb-2 text-xs font-poppins">
                     Press ESC key or click on ✕ button to close
                   </p>
-
-
-                  <div className=" mt-2 bg-base-300 rounded-lg p-2">
-                    <div className="bg-base-100 border-base-300 p-6">
+                  <div className="mt-2 bg-base-300 rounded-lg p-2">
+                    <div className="bg-base-100 border-base-300 p-6 rounded-lg">
                       <p className="text-base font-poppins font-semibold">
                         Enter Amount
                       </p>
                       <p className="text-xs font-poppins">
-                        minimum amount : $0.01
+                        minimum amount : ₹1
                       </p>
                       <form
-                        action=""
+                        onSubmit={handlePayment}
                         className="mt-4 flex flex-col gap-2 w-full"
                       >
                         <input
                           type="number"
-                          min="0.01"
-                          max="2"
+                          min={1}
+                          step={1}
                           className="input input-info w-full"
                           value={amount}
-                          onChange={(e)=>setAmount(e.target.value)}
+                          onChange={(e) => setAmount(e.target.value)}
+                          required
                         />
-
-
-                        <button className="btn btn-info font-poppins text-base mt-1"
-                        onClick={handlePayment}
+                        <button 
+                          type="submit"
+                          className="btn btn-info font-poppins text-base mt-1"
+                          disabled={loading}
                         >
-                          Add Amount
+                          {loading?"Processing...":"Add Amount"}
                         </button>
                       </form>
                     </div>
@@ -266,12 +322,10 @@ const dashboard = () => {
                     Winnings
                   </p>
                   <span className="text-lg -mt-0.5 font-semibold font-inter">
-                    $30
+                    ₹{winningAmount.toFixed(2)}
                   </span>
                 </div>
               </div>
-
-
               <button
                 className="btn btn-active bg-white text-black border-[#e5e5e5] rounded-xl font-inter w-30"
                 onClick={() => document.getElementById("Withdraw").showModal()}
@@ -296,7 +350,7 @@ const dashboard = () => {
                         Enter Amount
                       </p>
                       <p className="text-xs font-poppins">
-                        minimum amount : $0.01
+                        minimum amount : ₹1
                       </p>
                       <form
                         action=""
@@ -304,8 +358,8 @@ const dashboard = () => {
                       >
                         <input
                           type="number"
-                          min={0.01}
-                          max="2"
+                          min={1}
+                          max="20000"
                           className="input input-info w-full"
                           value={withdraw}
                           onChange={(e) => setWithdraw(e.target.value)}

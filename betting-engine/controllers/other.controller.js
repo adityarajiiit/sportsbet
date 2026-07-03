@@ -2,68 +2,86 @@ import { PrismaClient } from '@prisma/client'
 const prisma=new PrismaClient()
 export const allLiveMatches=async(req,res)=>{
     try{
+        const page=parseInt(req.query.page)||1
+        const limit=parseInt(req.query.limit)||10
+        const skip=(page-1)*limit
         const matches=await prisma.match.findMany({
             where:{
                 matchState:"Live"
-            }
+            },
+            skip,
+            take:limit
         })
         if(!matches){
-            return res.json({error:"no matches found"})
+            return res.status(400).json({error:"no matches found"})
         }
-        return res.json({matches})
+        const total=await prisma.match.count({where:{matchState:"Live"}})
+        return res.json({matches,totalPages:Math.ceil(total/limit),currentPage:page})
     }
     catch(e){
-        return res.json({error:e.message})
+        return res.status(400).json({error:e.message})
     }
 }
 export const allUpcomingMatches=async(req,res)=>{
     try{
+        const page=parseInt(req.query.page)||1
+        const limit=parseInt(req.query.limit)||10
+        const skip=(page-1)*limit
         const matches=await prisma.match.findMany({
             where:{
                 matchState:"Upcoming"
-            }
+            },
+            skip,
+            take:limit
         })
         if(!matches){
-            return res.json({error:"no matches found"})
+            return res.status(400).json({error:"no matches found"})
         }
-        return res.json({matches})
+        const total=await prisma.match.count({where:{matchState:"Upcoming"}})
+        return res.json({matches,totalPages:Math.ceil(total/limit),currentPage:page})
     }
     catch(e){
-        return res.json({error:e.message})
+        return res.status(400).json({error:e.message})
     }
 }
 
 export const allRecentMatches=async(req,res)=>{
     try{
+        const page=parseInt(req.query.page)||1
+        const limit=parseInt(req.query.limit)||10
+        const skip=(page-1)*limit
         const matches=await prisma.match.findMany({
             where:{
                 matchState:"Recent"
-            }
+            },
+            skip,
+            take:limit
         })
         if(!matches){
-            return res.json({error:"no matches found"})
+            return res.status(400).json({error:"no matches found"})
         }
-        return res.json({matches})
+        const total=await prisma.match.count({where:{matchState:"Recent"}})
+        return res.json({matches,totalPages:Math.ceil(total/limit),currentPage:page})
     }
     catch(e){
-        return res.json({error:e.message})
+        return res.status(400).json({error:e.message})
     }
 }
 
 export const getMatchBets=async(req,res)=>{
     try{
-        console.log("Hi")
+    console.log("Hi")
     const matchId=req.query.matchId
 
     console.log(matchId)
     if(!matchId){
-        return res.json({error:"matchId is required"})
+        return res.status(400).json({error:"matchId is required"})
     }
     const match=await prisma.match.findUnique({
         where:{id:matchId}
     })
     if(!match){
-        return res.json({error:"no match found"})
+        return res.status(400).json({error:"no match found"})
     }
     let matchbet=await prisma.matchbet.findUnique({
             where:{matchId:match.id}
@@ -111,14 +129,30 @@ export const getMatchBets=async(req,res)=>{
         })
     }
     catch(e){
-         return res.json({error:e.message})
+         return res.status(400).json({error:e.message})
+    }
+}
+export const getOddsHistory=async(req,res)=>{
+    try{
+        const matchbetId=req.query.matchbetId
+        if(!matchbetId){
+            return res.status(400).json({error:"matchbetId is required"})
+        }
+        const history=await prisma.oddsHistory.findMany({
+            where:{matchbetId:matchbetId},
+            orderBy:{timestamp:'asc'}
+        })
+        return res.json({history})
+    }
+    catch(e){
+        return res.status(400).json({error:e.message})
     }
 }
 export const getUser=async(req,res)=>{
     try{
        const userId=req.userId
        if(!userId){
-        return res.json({error:"no userid"})
+        return res.status(400).json({error:"no userid"})
        }
        const user=await prisma.user.findUnique({
         where:{
@@ -155,18 +189,59 @@ export const getUser=async(req,res)=>{
             }
             return total
         },0)
+        const winningamount=user.bets.reduce((total,bet)=>{
+            if(bet.status==='won'){
+                return total+(bet.amount*bet.odds)
+            }
+            if(bet.status==='sold' && bet.result && bet.result.price){
+                return total+bet.result.price
+            }
+            return total
+        },0)
         const playerstockcount=user.stockholders.filter(stock=>stock.pagetype==='player').length
         const teamstockscount=user.stockholders.filter(stock=>stock.pagetype==='team').length
        const data={
         ...user,
         betscount:user.bets.length,
         profitamount,
+        winningamount,
         playerstockcount,
         teamstockscount
        }
        return res.json(data)
     }
     catch(e){
-        return res.json({error:e.message})
+        return res.status(400).json({error:e.message})
+    }
+}
+
+export const getLeaderboard=async(req,res)=>{
+    try{
+        const users=await prisma.user.findMany({
+            select:{
+                id:true,
+                name:true,
+                image:true,
+                bets:{
+                    select:{status:true,amount:true,odds:true,result:true}
+                }
+            }
+        })
+        const leaderboard=users.map(user=>{
+            const profit=user.bets.reduce((total,bet)=>{
+                if(bet.status==='won')return total+(bet.amount*bet.odds-bet.amount)
+                if(bet.status==='lost')return total-bet.amount
+                return total
+            },0)
+            return{
+                id:user.id,
+                name:user.name,
+                image:user.image,
+                profit
+            }
+        }).sort((a,b)=>b.profit-a.profit).slice(0,10)
+        return res.json({leaderboard})
+    }catch(e){
+        return res.status(400).json({error:e.message})
     }
 }

@@ -1,4 +1,4 @@
-import { newStockTransaction,sellTransaction,getuserPortfolio,searchStock,getStockholders,getStockholder} from "../controllers/stock.controller.js";
+import { newStockTransaction,sellTransaction,getuserPortfolio,searchStock,getStockholders,getStockholder,getPriceHistory} from "../controllers/stock.controller.js";
 import { verifyToken } from "../middlewares/verifyToken.js";
 import express from 'express'
 const router=express.Router()
@@ -9,4 +9,5 @@ router.get('/portfolio',verifyToken,getuserPortfolio)
 router.get('/search',searchStock)
 router.get('/stockholders',verifyToken,getStockholders)
 router.get('/stockholder',verifyToken,getStockholder)
+router.get('/pricehistory',getPriceHistory)
 export default router

@@ -1,6 +1,9 @@
 import { Inngest } from "inngest";
 import nodemailer from 'nodemailer';
 import { io } from "../index.js";
+import { fetchLiveMatchScore } from "../utils/liveScore.js";
+import { fetchRecentMatchScore } from "../utils/recentScore.js";
+import { fetchOddsHistoryUpdate } from "../utils/oddsHistoryUpdate.js";
 import dotenv from 'dotenv'
 dotenv.config({path:'../../.env'})
 import {PrismaClient} from "@prisma/client"
@@ -217,7 +220,7 @@ async({event,step})=>{
             await prisma.notification.create({
                 data:{
                     userId:stock.userId,
-                    message:`${condition.type === "tp" ? "Take-profit" : "Stop-loss"} alert triggered for ${stock.stock.name || "your stock"} at price $${price.toFixed(2)}`,
+                    message:`${condition.type==="tp"?"Take-profit":"Stop-loss"} alert triggered for ${stock.stock.name || "your stock"} at price $${price.toFixed(2)}`,
                     type:"alert"
                 }
             })
@@ -341,5 +344,32 @@ async({event,step})=>{
     }
     return {message:"done"}
 })
-const functions=[betAlerts,stockAlerts]
+const liveScoreUpdate=inngest.createFunction({
+    id:'live-score-update'
+},{cron:'*/15 * * * *'},
+async({event,step})=>{
+    await step.run("fetch-live-scores",async()=>{
+        await fetchLiveMatchScore()
+    })
+    return {message:"live scores updated"}
+})
+const recentScoreUpdate=inngest.createFunction({
+    id:'recent-score-update'
+},{cron:'*/15 * * * *'},
+async({event,step})=>{
+    await step.run("fetch-recent-scores",async()=>{
+        await fetchRecentMatchScore()
+    })
+    return {message:"recent scores updated"}
+})
+const oddsHistoryUpdate=inngest.createFunction({
+    id:'odds-history-update'
+},{cron:'*/5 * * * *'},
+async({event,step})=>{
+    await step.run("fetch-odds-history",async()=>{
+        await fetchOddsHistoryUpdate()
+    })
+    return {message:"odds history updated"}
+})
+const functions=[betAlerts,stockAlerts,liveScoreUpdate,recentScoreUpdate,oddsHistoryUpdate]
 export {inngest,functions}

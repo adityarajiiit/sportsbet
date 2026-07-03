@@ -2,34 +2,11 @@ import express from 'express'
 const router=express.Router()
 import { PrismaClient } from '@prisma/client'
 const prisma=new PrismaClient()
-import { getMatchBets,getUser } from '../controllers/other.controller.js'
+import { getMatchBets,getUser,allLiveMatches,allUpcomingMatches,allRecentMatches,getLeaderboard,getOddsHistory } from '../controllers/other.controller.js'
 import { verifyToken } from '../middlewares/verifyToken.js'
-router.get('/livematches',async(req,res)=>{
-  const matches=await prisma.match.findMany({
-    where:{
-      matchState:'Live'
-    }
-  })
-
-  res.json(matches)
-})
-router.get('/upcomingmatches',async(req,res)=>{
-  const matches=await prisma.match.findMany({
-    where:{
-      matchState:'Upcoming'
-    }
-  })
-  console.log(matches)
-  res.json(matches)
-})
-router.get('/recentmatches',async(req,res)=>{
-    const matches=await prisma.match.findMany({
-      where:{
-        matchState:'Recent'
-      }
-    })
-    res.json(matches)
-})
+router.get('/livematches',allLiveMatches)
+router.get('/upcomingmatches',allUpcomingMatches)
+router.get('/recentmatches',allRecentMatches)
 router.get('/match/:id',async(req,res)=>{
     const score=await prisma.match.findUnique({
         where:{
@@ -39,6 +16,7 @@ router.get('/match/:id',async(req,res)=>{
     res.json(score)
 })
 router.get('/getmatchbets',getMatchBets)
+router.get('/oddshistory',getOddsHistory)
 router.get('/getmatchid',async(req,res)=>{
   const {cricbuzzmatchId}=req.query
   const match=await prisma.match.findUnique({
@@ -46,6 +24,9 @@ router.get('/getmatchid',async(req,res)=>{
       cricbuzzmatchId:parseInt(cricbuzzmatchId)
     }
   })
+  if(!match){
+    return res.status(404).json({error: "match not found"})
+  }
   res.json({matchId:match.id})
 })
 router.get('/gettrendingplayers',async(req,res)=>{
@@ -84,7 +65,8 @@ for(const player of topplayers){
     }
   })
   let pricechange=0
-  let startprice=playerdata.currprice
+  const currentStockPrice = playerdata.stock.length > 0 ? playerdata.stock[0].price : 50;
+  let startprice=currentStockPrice
   const trans=await prisma.stockTransaction.findFirst({
     where:{
       playerId:player.playerId,
@@ -99,7 +81,7 @@ for(const player of topplayers){
   if(trans){
     startprice=trans.price
   }
-  pricechange=playerdata.currprice-startprice
+  pricechange=currentStockPrice-startprice
   players.push({...playerdata,count:player.count,pricechange})
 }
 
@@ -153,7 +135,8 @@ router.get('/gettrendingteams',async(req,res)=>{
       }
     })
     let pricechange=0
-    let startprice=teamdata.currprice
+    const currentStockPrice = teamdata.stock.length > 0 ? teamdata.stock[0].price : 50;
+    let startprice=currentStockPrice
     const trans=await prisma.stockTransaction.findFirst({
       where:{
         teamId:team.teamId,
@@ -168,7 +151,7 @@ router.get('/gettrendingteams',async(req,res)=>{
     if(trans){
       startprice=trans.price
     }
-    pricechange=teamdata.currprice-startprice
+    pricechange=currentStockPrice-startprice
     teams.push({...teamdata,count:team.count,pricechange})
   }
   if(teams.length<10){
@@ -210,5 +193,6 @@ router.get('/getteam',async(req,res)=>{
   res.json(team)
 })
 router.get('/getuser',verifyToken,getUser)
+router.get('/leaderboard',getLeaderboard)
 export default router
 

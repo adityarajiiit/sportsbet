@@ -11,7 +11,6 @@ const aj=arcjet({
             mode:"LIVE",
             allow:[
                 "CATEGORY:SEARCH_ENGINE",
-                "CATEGORY:SOCIAL_MEDIA",
                 "CATEGORY:MONITOR",
                 "CATEGORY:PREVIEW"
             ]
@@ -29,15 +28,15 @@ export const arcjetMiddleware=async(req,res,next)=>{
     const arcjet=await aj.protect(req)
     if(arcjet.isDenied()){
         if(arcjet.reason.isRateLimit()){
-            return res.json({error:"Rate limit exceeded"})
+            return res.status(429).json({error:"Rate limit exceeded"})
         }
         if(arcjet.reason.isBot()&&!isSpoofedBot(req)){
-            return res.json({error:"user is a bot"})
+            return res.status(403).json({error:"user is a bot"})
         }
         if(arcjet.reason.isShield()){
-            return res.json({error:"your request has been blocked"})
+            return res.status(403).json({error:"your request has been blocked"})
         }
-        return res.json({error:"unknown error"})
+        return res.status(400).json({error:"unknown error"})
     }
     next()
 }
