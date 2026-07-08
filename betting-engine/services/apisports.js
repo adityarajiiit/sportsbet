@@ -331,3 +331,108 @@ console.log("done")
         console.log(e.message)
     }
 }
+const getallPlayersTeams=async()=>{
+    try{
+       const players=await prisma.player.findMany({
+           include:{
+               team:true
+           }
+       })
+       let count=0;
+       for(const player of players){
+        if(!player.teamId){
+            if(player.cricbuzzteamId){
+                const id=player.cricbuzzteamId
+                let teamname;
+                if(id===52126){
+                    teamname="Pakistan"
+                }
+                else if(id===24150873){
+                    teamname="West Indies"
+                }
+                else if(id===14566098){
+                    teamname="Ireland"
+                }
+                else if(id===867012){
+                    teamname="Vanuatuan"
+                }
+                else if(id===862868){
+                    teamname="India"
+                }
+                else if(id===213955){
+                    teamname="India"
+                }
+                else if(id===155043){
+                    teamname="Bangladesh"
+                }
+                else if(id===153732){
+                    teamname="India"
+                }
+                else if(id===11){
+                    teamname="Germany"
+                }
+                else if(id===20){
+                    teamname="India"
+                }
+                else if(id===32||id===38){
+                    teamname="Spain"
+                }
+                else if(id===47){
+                    teamname="Sweden"
+                }
+                else if(id===98){
+                    teamname="Australia"
+                }
+                else if(id===3483){
+                    teamname="USA"
+                }
+                else if(id===2817){
+                    teamname="New Zealand"
+                }
+                else if(id===146){
+                    teamname="South Africa"
+                }
+                else if(id===462){
+                    teamname="England"
+                }
+                else if(id===38404){
+                    teamname="Sri Lanka"
+                }
+                else if(id===155043){
+                    teamname="Bangladesh"
+                }
+                else if(id===43444){
+                    teamname="Afghanistan"
+                }
+                else if(id===2325){
+                    teamname="Zimbabwe"
+                }
+                else if(id===862868){
+                    teamname="Nepal"
+                }
+                else if(id===2802){
+                    teamname="UAE"
+                }
+                else{
+                    teamname="Unknown"
+                }
+                await prisma.player.update({
+                    where:{
+                        id:player.id
+                    },
+                    data:{
+                        teamName:teamname
+                    }
+                })
+            }
+        }
+        count++;
+        console.log(count)
+       }
+       console.log("alldone")
+    }
+    catch(e){
+        console.log(e.message)
+    }
+}
+await getallPlayersTeams()

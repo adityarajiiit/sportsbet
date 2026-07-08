@@ -28,7 +28,8 @@ import { MdOutlineSportsKabaddi } from "react-icons/md";
 import { FaVolleyball } from "react-icons/fa6";
 import { FaBox } from "react-icons/fa";
 import LiveEvent from "./EventComponents/Events";
-
+import io from "socket.io-client"
+import axios from "axios"
 function SportSection() {
   const sports = [
     {

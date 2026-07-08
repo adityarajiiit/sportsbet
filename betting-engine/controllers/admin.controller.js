@@ -13,7 +13,7 @@ const user=await prisma.user.findUnique({
     }
 })
 if(!user){
-    return res.json({error:"No user or user not an admin"})
+    return res.status(400).json({error:"No user or user not an admin"})
 }
 const data=req.body
 const team=await prisma.team.create({
@@ -26,12 +26,12 @@ const team=await prisma.team.create({
     }
 })
 if(!team){
-    return res.json({error:"tema not created"})
+    return res.status(400).json({error:"tema not created"})
 }
 return res.json({team})
     }
     catch(e){
-        return res.status(500).json({error:e.message})
+        return res.status(400).json({error:e.message})
     }
 }
 export const newPlayer=async(req,res)=>{
@@ -44,7 +44,7 @@ export const newPlayer=async(req,res)=>{
     }
 })
     if(!user){
-        return res.json({error:"no user or user not an admin"})
+        return res.status(400).json({error:"no user or user not an admin"})
     }
     const data=req.body
     const player=await prisma.player.create({
@@ -55,10 +55,11 @@ export const newPlayer=async(req,res)=>{
             currprice:data.currprice,
             shares:data.shares,
             matchIds:[],
+            teamName:data.teamName||null
         }
     })
     if(!player){
-        return res.json({error:"player not created"})
+        return res.status(400).json({error:"player not created"})
     }
     const team=await prisma.team.update({
         where:{
@@ -71,12 +72,12 @@ export const newPlayer=async(req,res)=>{
         }
     })
     if(!team){
-        return res.json({error:"team not updated"})
+        return res.status(400).json({error:"team not updated"})
     }
 return res.json({player})
 }
 catch(e){
-    return res.status(500).json({error:e.message})
+    return res.status(400).json({error:e.message})
 }
     
 }
@@ -96,23 +97,19 @@ if(!user){
 const data=req.body
 const players1=await prisma.player.findMany({
     where:{
-        id:{
-            in:data.teamIds[0]
-        }
+        teamId: data.teamIds[0]
     }
 })
 if(players1.length===0){
-    return res.json({error:"no players found for team 1"})
+    return res.status(400).json({error:"no players found for team 1"})
 }
 const players2=await prisma.player.findMany({
     where:{
-        id:{
-            in:data.teamIds[1]
-        }
+        teamId: data.teamIds[1]
     }
 })
 if(players2.length===0){
-    return res.json({error:"no players found for team 2"})
+    return res.status(400).json({error:"no players found for team 2"})
 }
 const allplayers=[...players1,...players2]
 const playerids=allplayers.map(player=>player.id)
@@ -129,7 +126,7 @@ const match=await prisma.match.create({
     }
 })
 if(!match){
-    return res.json({error:"match not created"})
+    return res.status(400).json({error:"match not created"})
 }
 
 const newbet=await prisma.matchbet.create({
@@ -141,7 +138,7 @@ const newbet=await prisma.matchbet.create({
     }
 })
 if(!newbet){
-    return res.json({error:"match bet not created"})
+    return res.status(400).json({error:"match bet not created"})
 }
 const outcomes=await prisma.matchbetoutcomes.createMany({
     data:data.outcomes.map(outcome=>({
@@ -152,7 +149,7 @@ const outcomes=await prisma.matchbetoutcomes.createMany({
     }))
 })
 if(outcomes.count===0){
-    return res.json({error:"match bet outcomes not created"})
+    return res.status(400).json({error:"match bet outcomes not created"})
 }
 const updatedplayers=await prisma.player.updateMany({
     where:{
@@ -169,7 +166,7 @@ const updatedplayers=await prisma.player.updateMany({
 return res.json({match})
 }
 catch(e){
-    return res.status(500).json({error:e.message})
+    return res.status(400).json({error:e.message})
 }
 }
 export const deleteMatch=async(req,res)=>{
@@ -186,7 +183,7 @@ if(!user){
 }
 const matchId=req.params.id
 if(!matchId){
-    return res.json({error:"no match id"})
+    return res.status(400).json({error:"no match id"})
 }
 const match=await prisma.match.delete({
     where:{
@@ -198,7 +195,7 @@ const match=await prisma.match.delete({
     }
 })
 if(!match){
-    return res.json({error:"match not deleted"})
+    return res.status(400).json({error:"match not deleted"})
 }
 const players=await prisma.player.updateMany({
     where:{
@@ -240,11 +237,11 @@ const user=await prisma.user.findUnique({
     }
 })
 if(!user){
-    return res.json({error:"no user"})
+    return res.status(400).json({error:"no user"})
 }
 const playerId=req.params.id
 if(!playerId){
-    return res.json({error:"no player id"})
+    return res.status(400).json({error:"no player id"})
 }
 const player=await prisma.player.delete({
     where:{
@@ -255,7 +252,7 @@ const player=await prisma.player.delete({
     }
 })
 if(!player){
-    return res.json({error:"player not deleted"})
+    return res.status(400).json({error:"player not deleted"})
 }
 const team=await prisma.team.update({
     where:{
@@ -270,7 +267,7 @@ const team=await prisma.team.update({
 return res.json({player})
     }
     catch(e){
-        return res.status(500).json({error:e.message})
+        return res.status(400).json({error:e.message})
     }
 }
 export const deleteTeam=async(req,res)=>{
@@ -287,7 +284,7 @@ if(!user){
 }
 const teamId=req.params.id
 if(!teamId){
-    return res.json({error:"no team id"})
+    return res.status(400).json({error:"no team id"})
 }
 const team=await prisma.team.delete({
     where:{
@@ -298,7 +295,7 @@ const team=await prisma.team.delete({
     }
 })
 if(!team){
-    return res.json({error:"team not deleted"})
+    return res.status(400).json({error:"team not deleted"})
 }
 const players=await prisma.player.updateMany({
     where:{
@@ -313,7 +310,7 @@ const players=await prisma.player.updateMany({
 return res.json({team})
     }
     catch(e){
-        return res.status(500).json({error:e.message})
+        return res.status(400).json({error:e.message})
     }
 }
 export const newMatchBet=async(req,res)=>{
@@ -326,7 +323,7 @@ const user=await prisma.user.findUnique({
     }
 })
     if(!user){
-        return res.json({error:"not a user"})
+        return res.status(400).json({error:"not a user"})
     }
     const data=req.body
     const matchbet=await prisma.matchbet.create({
@@ -338,7 +335,7 @@ const user=await prisma.user.findUnique({
         }
     })
     if(!matchbet){
-        return res.json({error:"match bet not created"})
+        return res.status(400).json({error:"match bet not created"})
     }
     const outcomes=await prisma.matchbetoutcomes.createMany({
         data:data.outcomes.map(outcome=>({
@@ -351,7 +348,7 @@ const user=await prisma.user.findUnique({
     return res.json({matchbet, outcomes})
 }
 catch(e){
-    return res.status(500).json({error:e.message})
+    return res.status(400).json({error:e.message})
 }
 }
 export const newStock=async(req,res)=>{
@@ -381,13 +378,14 @@ if(!user){
         }
     })
     if(!stock){
-        return res.json({error:"stock not created"})
+        return res.status(400).json({error:"stock not created"})
     }
     return res.json({stock})
     }
     
 
     catch(e){
-        return res.json({error:e.message})
+        return res.status(400).json({error:e.message})
     }
 }
+

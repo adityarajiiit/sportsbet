@@ -1,15 +1,13 @@
-import jwt from 'jsonwebtoken'
-export const verifyToken=(req,res,next)=>{
-    const token=req.cookies.token
-    if(!token){
-        return res.json({error:"no token"})
-    }
+import {getToken} from 'next-auth/jwt'
+import dotenv from 'dotenv'
+dotenv.config({path:'../../.env'})
+export const verifyToken=async(req,res,next)=>{
     try{
-        const user=jwt.verify(token,process.env.SECRET)
-        if(!user){
-            return res.json({error:"error while decoding"})
+        const token=await getToken({req,secret:process.env.SECRET})
+        if(!token){
+            return res.json({error:"no token"})
         }
-        req.userId=user.id
+        req.userId=token.sub
         next()
     }
     catch(e){

@@ -1,4 +1,4 @@
-import{Kafka} from "kafkajs"
+import{Kafka,Partitioners} from "kafkajs"
 import dotenv from "dotenv"
 import fs from "fs"
 import path from "path"
@@ -17,8 +17,8 @@ export const kafka=new Kafka({
         password:process.env.KAFKA_PASS
     },
     ssl:{
-        ca:process.env.KAFKA_CERTIFICATE
+        ca:[fs.readFileSync(path.resolve(__dirname,'../../certificates/ca.pem'),'utf-8')]
     }
 })
 
-export const producer=kafka.producer()
+export const producer=kafka.producer({createPartitioner:Partitioners.LegacyPartitioner})

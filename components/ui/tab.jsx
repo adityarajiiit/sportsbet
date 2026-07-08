@@ -1,27 +1,48 @@
-"use client";
-import { useState } from "react";
-import { motion } from "motion/react";
-import { cn } from "@/lib/utils";
+"use client"
+import {useEffect,useState} from "react"
+import { motion } from "motion/react"
+import { cn } from "@/lib/utils"
 
-export const Tabs = ({
-  tabs: propTabs,
+export const Tabs=({
+  tabs:propTabs,
   containerClassName,
   activeTabClassName,
   tabClassName,
   contentClassName,
-}) => {
-  const [active, setActive] = useState(propTabs[0]);
-  const [tabs, setTabs] = useState(propTabs);
+})=>{
+  const [activeValue,setActiveValue]=useState(propTabs[0]?.value)
+  const [tabOrder,setTabOrder]=useState(()=>
+    propTabs.map((tab)=>tab.value)
+  )
+  useEffect(()=>{
+    const availableValues=propTabs.map((tab)=>tab.value)
+    setTabOrder((prevOrder)=>{
+      const kept=prevOrder.filter((value)=>availableValues.includes(value))
+      const added=availableValues.filter((value)=>!kept.includes(value))
+      return [...kept, ...added]
+    })
+    setActiveValue((prevValue)=>{
+      if(availableValues.includes(prevValue)){
+        return prevValue
+      }
+      return availableValues[0]
+    })
+  },[propTabs])
+  const moveSelectedTabToTop=(idx)=>{
+    const selectedValue = propTabs[idx]?.value
+    if (!selectedValue) return
+    setTabOrder((prevOrder) => [
+      selectedValue,
+      ...prevOrder.filter((value) => value !== selectedValue),
+    ])
+    setActiveValue(selectedValue)
+  }
 
-  const moveSelectedTabToTop = (idx) => {
-    const newTabs = [...propTabs];
-    const selectedTab = newTabs.splice(idx, 1);
-    newTabs.unshift(selectedTab[0]);
-    setTabs(newTabs);
-    setActive(newTabs[0]);
-  };
+  const tabs = tabOrder
+    .map((value) => propTabs.find((tab) => tab.value === value))
+    .filter(Boolean)
 
-  const [hovering, setHovering] = useState(false);
+  const [hovering, setHovering] = useState(false)
 
   return (
     <>
@@ -35,7 +56,7 @@ export const Tabs = ({
           <button
             key={tab.title}
             onClick={() => {
-              moveSelectedTabToTop(idx);
+              moveSelectedTabToTop(idx)
             }}
             onMouseEnter={() => setHovering(true)}
             onMouseLeave={() => setHovering(false)}
@@ -44,7 +65,7 @@ export const Tabs = ({
               transformStyle: "preserve-3d",
             }}
           >
-            {active.value === tab.value && (
+            {activeValue === tab.value && (
               <motion.div
                 layoutId="clickedbutton"
                 transition={{ type: "spring", bounce: 0.3, duration: 0.6 }}
@@ -63,19 +84,19 @@ export const Tabs = ({
       </div>
       <FadeInDiv
         tabs={tabs}
-        active={active}
-        key={active.value}
+        activeValue={activeValue}
+        key={activeValue}
         hovering={hovering}
         className={cn("mt-24", contentClassName)}
       />
     </>
-  );
-};
+  )
+}
 
-export const FadeInDiv = ({ className, tabs, hovering }) => {
+export const FadeInDiv = ({ className, tabs, hovering, activeValue }) => {
   const isActive = (tab) => {
-    return tab.value === tabs[0].value;
-  };
+    return tab.value === activeValue
+  }
   return (
     <div className="relative w-full h-full">
       {tabs.map((tab, idx) => (
@@ -97,5 +118,5 @@ export const FadeInDiv = ({ className, tabs, hovering }) => {
         </motion.div>
       ))}
     </div>
-  );
-};
+  )
+}

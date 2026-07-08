@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { HiHome } from "react-icons/hi2";
 import { MdSpaceDashboard } from "react-icons/md";
@@ -15,9 +15,43 @@ import { MdAddCard } from "react-icons/md";
 import { BackgroundGradient } from "@/components/ui/backgroundgradient";
 import { FaBell } from "react-icons/fa";
 import { FaUserLock } from "react-icons/fa";
+import axios from "axios";
+import { useUserStore } from "../store/useUserStore";
+import {io} from "socket.io-client";
+import {toast} from "sonner";
 function Navbar() {
-  const { data: session } = useSession();
-  const { theme } = useThemeStore();
+  const {data:session}=useSession()
+  const {theme}=useThemeStore()
+  const {walletBalance,refreshUser}=useUserStore()
+  useEffect(()=>{
+    refreshUser()
+  },[])
+  useEffect(()=>{
+    if(!session?.user?.id) return
+    const socket=io(process.env.NEXT_PUBLIC_API_URL||"http://localhost:4000")
+    socket.on("connect",()=>{
+      socket.emit("join-room",session.user.id)
+    })
+    socket.on("reminder",(data)=>{
+      toast(data.message,{
+        duration:10000,
+        position:"top-center"
+      })
+    })
+    socket.on("notification",(data)=>{
+      toast(data.message,{
+        duration:6000,
+        position:"top-right"
+      })
+    })
+    return()=>{
+      socket.emit("leave-room",session.user.id)
+      socket.off("connect")
+      socket.off("reminder")
+      socket.off("notification")
+      socket.disconnect()
+    }
+  },[session?.user?.id])
   return (
     <header
       className="flex justify-between items-center p-3 w-full h-20 absolute top-0 z-10 bg-transparent "
@@ -73,7 +107,7 @@ function Navbar() {
                 Balance
               </p>
               <span className="text-base -mt-0.5 font-bold font-inter">
-                ₹30
+                ₹{walletBalance.toFixed(2)}
               </span>
             </div>
           </div>
@@ -93,12 +127,12 @@ function Navbar() {
           <FaUserLock className="size-4.5" />
         </Link>
         {session ? (
-          <Link
-            href="/login"
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
             className="px-6 py-3 rounded-full bg-[#c1d71e] font-bold text-base-100 tracking-widest uppercase transform hover:scale-102 hover:bg-[#FFB22C] transition-all duration-200 font-inter text-sm "
           >
             Log Out
-          </Link>
+          </button>
         ) : (
           <Link
             href="/login"
@@ -160,12 +194,12 @@ function Navbar() {
             </Link>
             <div></div>
             {session ? (
-              <Link
-                href="/login"
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
                 className="flex justify-start items-center p-2 gap-1  font-medium font-poppins text-sm hover:bg-base-300 rounded-xs"
               >
                 Log Out
-              </Link>
+              </button>
             ) : (
               <Link
                 className="flex justify-start items-center p-2 gap-1  font-medium font-poppins text-sm hover:bg-base-300 rounded-xs"

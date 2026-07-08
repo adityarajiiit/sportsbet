@@ -1,6 +1,9 @@
 import { Inngest } from "inngest";
 import nodemailer from 'nodemailer';
 import { io } from "../index.js";
+import { fetchLiveMatchScore } from "../utils/liveScore.js";
+import { fetchRecentMatchScore } from "../utils/recentScore.js";
+import { fetchOddsHistoryUpdate } from "../utils/oddsHistoryUpdate.js";
 import dotenv from 'dotenv'
 dotenv.config({path:'../../.env'})
 import {PrismaClient} from "@prisma/client"
@@ -12,17 +15,18 @@ const inngest=new Inngest({
     name:'Betting Engine',
     eventKey:process.env.INNGEST_EVENT_KEY,
 })
-
+console.log('this is',inngest)
 
 const betAlerts=inngest.createFunction({
     id:'bet-alerts'
 },{event:'bet.alerts'},
 async({event,step})=>{
     const data=event.data
+    console.log('data is',data)
     const alerts=await step.run("getalerts",async()=>{
         return await prisma.alert.findMany({
             where:{
-                betId:data.betId,
+                betId:data.id,
                 status:"alertcreated"
             }
         })
@@ -34,7 +38,7 @@ async({event,step})=>{
     const bet=await step.run("getbet",async()=>{
         return await prisma.bet.findUnique({
             where:{
-                id:data.betId
+                id:data.id
             },
             include:{
                 user:true,
@@ -52,7 +56,7 @@ async({event,step})=>{
     for(const alert of alerts){
         const condition=alert.condition
         if(condition.action==="sell"){
-            if(condition.type==="high"&&betamount>condition.value){
+            if(condition.type==="high"&&betamount>parseFloat(condition.value)){
                 await step.run("sellbet",async()=>{
                     return await prisma.bet.update({
                         where:{
@@ -65,7 +69,7 @@ async({event,step})=>{
                     })
                 })
             }
-            else if(condition.type==="low"&&betamount<condition.value){
+            else if(condition.type==="low"&&betamount<parseFloat(condition.value)){
                 await step.run("sellbet",async()=>{
                     return await prisma.bet.update({
                         where:{
@@ -127,6 +131,11 @@ async({event,step})=>{
 return {message:'done'}
 }
 )
+
+
+
+
+
 const stockAlerts=inngest.createFunction({
     id:"stock-alerts"
 },{event:'stock.alerts'},
@@ -139,6 +148,7 @@ async({event,step})=>{
                 status:"alertcreated"
             }
         })
+
     })
     if(alerts.length===0){
         return{message:"no alerts found"}
@@ -161,13 +171,34 @@ async({event,step})=>{
     if(!stock){
         return {message:"not a stockholder"}
     }
-    const amount=stock.averageprice*stock.shares
+    const price=stock.stock.price
+    const amount=price*stock.shares
     for(const alert of alerts){
         const condition=alert.condition
-        if(condition.action==="sell"){
-            if(condition.type==="high"&&amount>condition.value){
+        const threshold=parseFloat(condition.value)
+        let closed=false
+        if(condition.order==="buy"){
+            let total = 0;
+            if((condition.type==="tp"&&price>=threshold)||(condition.type==="sl"&&price<=threshold)){
                 await step.run("sellstock",async()=>{
-                    return await prisma.stockholder.update({
+                    const sharestosell=stock.shares
+                    const currprice=stock.stock.price
+                    total=sharestosell*currprice
+                    await prisma.stockTransaction.create({
+                        data:{
+                            pagetype:stock.pagetype,
+                            playerId:stock.playerId,
+                            teamId:stock.teamId,
+                            userId:stock.userId,
+                            type:"sell",
+                            stockId:stock.stockId,
+                            price:currprice,
+                            shares:sharestosell,
+                            total:total,
+                            stockholderId:stock.id
+                        }
+                    })
+                    await prisma.stockholder.update({
                         where:{
                             id:data.stockholderId
                         },
@@ -177,10 +208,73 @@ async({event,step})=>{
                         }
                     })
                 })
+                await prisma.wallet.update({
+                    where:{userId:stock.userId},
+                    data:{
+                        balance:{increment:total}
+                    }
+                })
+                closed=true
             }
-            else if(condition.type==="low"&&amount<condition.value){
-                await step.run("sellstock",async()=>{
-                    return await prisma.stockholder.update({
+        await step.run("notifystock",async()=>{
+            await prisma.notification.create({
+                data:{
+                    userId:stock.userId,
+                    message:`${condition.type==="tp"?"Take-profit":"Stop-loss"} alert triggered for ${stock.stock.name || "your stock"} at price $${price.toFixed(2)}`,
+                    type:"alert"
+                }
+            })
+            const transporter=nodemailer.createTransport({
+                service:'gmail',
+                auth:{
+                    user:process.env.GAUTH_EMAIL,
+                    pass:process.env.GAUTH_PASSWORD
+                }
+            })
+            const mail={
+                from:process.env.GAUTH_EMAIL,
+                to:stock.user.email,
+                subject:'Stock Alert Notification',
+                html:`<p>Your ${condition.type === "tp" ? "take-profit" : "stop-loss"} alert has been triggered for ${stock.stock.name || "your stock"} at price $${price.toFixed(2)}</p>`
+            }
+            await transporter.sendMail(mail)
+            io.to(stock.userId).emit('stockalert',{
+                id:alert.id,
+                message:`Your ${condition.type === "tp" ? "take-profit" : "stop-loss"} alert has been triggered for ${stock.stock.name || "your stock"} at price $${price.toFixed(2)}`
+            })
+            await prisma.alert.update({
+                where:{
+                    id:alert.id
+                },
+                data:{
+                    status:"done"
+                }
+            })
+        })
+        }
+        else if(condition.order==="sell"){
+            if((condition.type==="tp"&&price<=threshold)||(condition.type==="sl"&&price>=threshold)){
+                await step.run("buyback",async()=>{
+                    const sharestobuy=Math.abs(stock.shares)
+                    const currprice=stock.stock.price
+                    const total=sharestobuy*currprice
+                    const originalsellvalue=sharestobuy*stock.averageprice
+                    const profit=originalsellvalue-total
+                    await prisma.stockTransaction.create({
+                        data:{
+                            pagetype:stock.pagetype,
+                            playerId:stock.playerId,
+                            teamId:stock.teamId,
+                            userId:stock.userId,
+                            type:"buy",
+                            stockId:stock.stockId,
+                            price:currprice,
+                            shares:sharestobuy,
+                            total:total,
+                            stockholderId:stock.id
+                        }
+                    })
+                    await prisma.stockholder.update({
                         where:{
                             id:data.stockholderId
                         },
@@ -189,52 +283,93 @@ async({event,step})=>{
                             averageprice:0
                         }
                     })
+                    if(profit>0){
+                        await prisma.wallet.update({
+                            where:{userId:stock.userId},
+                            data:{
+                                balance:{increment:profit}
+                            }
+                        })
+                    }
+                    else{
+                        await prisma.wallet.update({
+                            where:{userId:stock.userId},
+                            data:{
+                                balance:{decrement:Math.abs(profit)}
+                            }
+                        })
+                    }
+                
                 })
-            }
-            else{
-                return {message:"within range"}
+                closed=true
+                await step.run("notifystock",async()=>{
+                    await prisma.notification.create({
+                        data:{userId:stock.userId,
+                            message:`${condition.type === "tp" ? "Take-profit" : "Stop-loss"} alert triggered for ${stock.stock.name || "your stock"} at price $${price.toFixed(2)}`,
+                            type:"alert"
+                        }
+                    })
+                    const transporter=nodemailer.createTransport({
+                        service:'gmail',
+                        auth:{
+                            user:process.env.GAUTH_EMAIL,
+                            pass:process.env.GAUTH_PASSWORD
+                        },
+                    })
+                    const mail={
+                        from:process.env.GAUTH_EMAIL,
+                        to:stock.user.email,
+                        subject:'Stock Alert Notification',
+                        html:`<p>Your ${condition.type === "tp" ? "take-profit" : "stop-loss"} alert has been triggered for ${stock.stock.name || "your stock"} at price $${price.toFixed(2)}</p>`
+                    }
+                    await transporter.sendMail(mail)
+                    io.to(stock.userId).emit('stockalert',{
+                        id:alert.id,
+                        message:`Your ${condition.type === "tp" ? "take-profit" : "stop-loss"} alert has been triggered for ${stock.stock.name || "your stock"} at price $${price.toFixed(2)}`
+                    })
+                    await prisma.alert.update({
+                        where:{
+                            id:alert.id
+                        },
+                        data:{
+                            status:"done"
+                        }
+                    })
+                })
             }
         }
         else{
-            await step.run("notifystock",async()=>{
-                await prisma.notification.create({
-                    data:{userId:stock.userId,
-                        message:`You have reached the thresold of stock alert for stock ${stock.stock.title} and current value is ${amount}`,
-                        type:"alert"
-
-                    }
-                })
-                const transporter=nodemailer.createTransport({
-                    service:'gmail',
-                    auth:{
-                        user:process.env.GAUTH_EMAIL,
-                        pass:process.env.GAUTH_PASSWORD
-                    },
-                })
-                const mail={
-                    from:process.env.GAUTH_EMAIL,
-                    to:stock.user.email,
-                    subject:'Stock Alert Notification',
-                    html:`<p>You have reached your stock alert threshold for stock ${stock.stock.title} and your current value is ${amount}</p>`
-                }
-                await transporter.sendMail(mail)
-                io.to(stock.userId).emit('stockalert',{
-                    id:alert.id,
-                    message:`You have reached your stock alert threshold for stock ${stock.stock.title} and your current value is ${amount}`
-                })
-                await prisma.alert.update({
-                    where:{
-                        id:alert.id
-                    },
-                    data:{
-                        status:"done"
-                    }
-                })
-            })
+            return {message:"no action"}
         }
-
     }
-    return {message:'done'}
+    return {message:"done"}
 })
-const functions=[betAlerts,stockAlerts]
+const liveScoreUpdate=inngest.createFunction({
+    id:'live-score-update'
+},{cron:'*/15 * * * *'},
+async({event,step})=>{
+    await step.run("fetch-live-scores",async()=>{
+        await fetchLiveMatchScore()
+    })
+    return {message:"live scores updated"}
+})
+const recentScoreUpdate=inngest.createFunction({
+    id:'recent-score-update'
+},{cron:'*/15 * * * *'},
+async({event,step})=>{
+    await step.run("fetch-recent-scores",async()=>{
+        await fetchRecentMatchScore()
+    })
+    return {message:"recent scores updated"}
+})
+const oddsHistoryUpdate=inngest.createFunction({
+    id:'odds-history-update'
+},{cron:'*/5 * * * *'},
+async({event,step})=>{
+    await step.run("fetch-odds-history",async()=>{
+        await fetchOddsHistoryUpdate()
+    })
+    return {message:"odds history updated"}
+})
+const functions=[betAlerts,stockAlerts,liveScoreUpdate,recentScoreUpdate,oddsHistoryUpdate]
 export {inngest,functions}

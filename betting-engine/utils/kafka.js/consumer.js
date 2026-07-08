@@ -4,10 +4,10 @@ import fs from "fs"
 import path from "path"
 import { fileURLToPath } from "url"
 import { dirname } from "path"
-import { io } from "@/betting-engine/index.js"
+import { io } from "../../index.js"
 dotenv.config({path:'../../.env'})
 const filename=fileURLToPath(import.meta.url)
-const dirname=dirname(filename)
+const __dirname=dirname(filename)
 const kafka=new Kafka({
     brokers:[process.env.KAFKA_URI],
     sasl:{
@@ -16,12 +16,13 @@ const kafka=new Kafka({
         password:process.env.KAFKA_PASS
     },
     ssl:{
-        ca:process.env.KAFKA_CERTIFICATE
+        ca:[fs.readFileSync(path.resolve(__dirname,'../../certificates/ca.pem'),'utf-8')]
     }
 })
-const consumer=kafka.consumer({groupId:'matchconsumers'})
 
-const matchfetch=async()=>{
+const consumer=kafka.consumer({groupId:'matchconsumers'})
+export const matchfetch=async()=>{
+    
     try{
         await consumer.connect()
         await consumer.subscribe({
@@ -31,12 +32,13 @@ const matchfetch=async()=>{
         await consumer.run({
             eachMessage:async({topic,partition,message,heartbeat})=>{
                 const data=JSON.parse(message.value.toString())
+                console.log(data)
                 io.emit('match-update',{
                     topic,
                     partition,
                     data
                 })
-                await heartbeat()
+await heartbeat()
                 console.log('done')
             }
         })
@@ -46,4 +48,4 @@ const matchfetch=async()=>{
         setTimeout(matchfetch,5000)
     }
 }
-await matchfetch()
+

@@ -24,16 +24,18 @@ model User{
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   accounts Account[]
-  stockholders Stockholder[]
-  bets Bet[]
-  stockTransactions StockTransaction[]
+  stockholders Stockholder[] @relation("stockuser")
+  bets Bet[] @relation("userbets")
+  stockTransactions StockTransaction[] @relation("stocktransuser")
   alerts Alert[]
   reminders Reminder[]
   comments Comment[]
+  chatMessages ChatMessage[] @relation("userToChatMessage")
   notifications Notification[]
   wallet Wallet? @relation("usertoken")
   orders Order[] @relation("userorders")
   files File[] @relation("userfiles")
+  withdrawalRequests WithdrawalRequest[]
 }
 enum Role{
   Guest
@@ -83,9 +85,12 @@ model Match{
   seriesname String?
   cricbuzzseriesId Int?
   status String @default("Upcoming")
+  sportType String @default("Cricket")
   result String?
   scorecard Json?
-  bets Bet[]
+  liveScore Json?
+  matchState String @default("Upcoming")
+  bets Bet[] @relation("betmatch")
   comments Comment[]
   reminders Reminder[]
   teams Team[] @relation("matchteams",references:[id],fields:[teamIds])
@@ -112,8 +117,7 @@ model Team{
   comments Comment[]
   stockholders Stockholder[]
   stocktrans StockTransaction[]
-  matchbetoutcomes Matchbetoutcomes[]
-  stock Stock[]
+  stock Stock[] @relation("teamstock")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([name])
@@ -127,6 +131,7 @@ model Player{
   battingstyle String?
   bowlingstyle String?
   position Json?
+  teamName String?
   team Team? @relation("teamplayers",fields:[teamId],references:[id],onDelete:Cascade)
   career Json?
   currprice Float @default(50)
@@ -135,11 +140,11 @@ model Player{
   gender String?
   matchIds String[] @db.ObjectId
   matches Match[] @relation("matchplayers",references:[id],fields:[matchIds])
-  stocktrans StockTransaction[]
-  stockholders Stockholder[]
+  stocktrans StockTransaction[] 
+  stockholders Stockholder[] 
   reminders Reminder[]
   comments Comment[]
-  stock Stock[]
+  stock Stock[] @relation("playerstock")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([name])
@@ -157,8 +162,9 @@ model Stock{
   teamId String? @db.ObjectId
   stockholders Stockholder[] @relation("stockholderslist")
   stockTransactions StockTransaction[] @relation("stocktranslist")
-  player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
-  team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
+  player Player? @relation("playerstock",fields:[playerId],references:[id],onDelete:Cascade)
+  team Team? @relation("teamstock",fields:[teamId],references:[id],onDelete:Cascade)
+  nameEmbedding Float[]
   name String
   price Float
   shares Int
@@ -179,7 +185,7 @@ model StockTransaction{
   price Float
   shares Int
   total Float
-  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  user User @relation("stocktransuser",fields:[userId],references:[id],onDelete:Cascade)
   player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
   team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
   stockholderId String @db.ObjectId
@@ -206,13 +212,12 @@ model Stockholder{
   stockId String @db.ObjectId
   stock Stock @relation("stockholderslist",fields:[stockId],references:[id],onDelete:Cascade)
   transactions StockTransaction[] @relation("stocktrans")
-  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  user User @relation("stockuser",fields:[userId],references:[id],onDelete:Cascade)
   player Player? @relation(fields:[playerId],references:[id],onDelete:Cascade)
   team Team? @relation(fields:[teamId],references:[id],onDelete:Cascade)
   alerts Alert[] @relation("stockholderalerts")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@unique([userId,playerId,teamId])
   @@index([playerId])
   @@index([teamId])
   @@index([userId])
@@ -234,8 +239,9 @@ model Bet{
   alerts Alert[] @relation("betalerts")
   matchoutcomeId String? @db.ObjectId
   matchoutcome Matchbetoutcomes? @relation("matchbetoutcomes",fields:[matchoutcomeId],references:[id],onDelete:Cascade)
-  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
-  match Match @relation(fields:[matchId],references:[id],onDelete:Cascade)
+  user User @relation("userbets",fields:[userId],references:[id],onDelete:Cascade)
+  match Match @relation("betmatch",fields:[matchId],references:[id],onDelete:Cascade)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([userId])
@@ -320,6 +326,7 @@ enum notificationtype{
 model Comment{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   pagetype pagetype
+  replyto String? 
   userId String @db.ObjectId
   matchId String? @db.ObjectId
   playerId String? @db.ObjectId
@@ -342,28 +349,28 @@ model Comment{
 
 model Matchbet{
   id String @id @default(auto()) @map("_id") @db.ObjectId
-  matchId String @db.ObjectId
+  matchId String @unique @db.ObjectId
   title String
   bets Bet[] @relation("matchbets")
   status String @default("Upcoming")
   outcomes Matchbetoutcomes[] @relation("spotbetoutcomes")
+  oddsHistory OddsHistory[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([matchId])
 }
 model Matchbetoutcomes{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   matchbetId String @db.ObjectId
-  teamId String @db.ObjectId
+  teamId Int
+  teamname String
   odds Float
   total Float
   bets Bet[] @relation("matchbetoutcomes")
   matchbet Matchbet @relation("spotbetoutcomes",fields:[matchbetId],references:[id],onDelete:Cascade)
-  team Team @relation(fields:[teamId],references:[id],onDelete:Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  @@index([matchbetId])
   @@index([teamId])
+  @@index([matchbetId])
   @@unique([matchbetId,teamId])
 }
 model Wallet{
@@ -379,7 +386,6 @@ model Order{
   userId String @db.ObjectId
   amount Float
   status orderstatus @default(pending)
-  paymentstatus orderstatus @default(pending)
   paymentinfo Payment[] @relation("orderpayments")
   user User @relation("userorders",fields:[userId],references:[id],onDelete:Cascade)
   createdAt DateTime @default(now())
@@ -387,12 +393,11 @@ model Order{
 }
 model Payment{
   id String @id @default(auto()) @map("_id") @db.ObjectId
+  paymentId BigInt @db.Long
   orderId String @db.ObjectId
-  payercurrency String 
   amount Float
-  paymentamount Float
-  currency String
-  network String
+  status String
+  additionalInfo Json?
   order Order @relation("orderpayments",fields:[orderId],references:[id],onDelete:Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -411,4 +416,92 @@ model File{
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   user User @relation("userfiles",fields:[userId],references:[id],onDelete:Cascade)
+}
+
+model PriceHistory{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  stockId String @db.ObjectId
+  price Float
+  pagetype pagetype
+  createdAt DateTime @default(now())
+  @@index([stockId])
+  @@index([createdAt])
+}
+
+model WithdrawalRequest{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId String @db.ObjectId
+  amount Float
+  status withdrawalstatus @default(pending)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+  @@index([userId])
+  @@index([status])
+}
+
+enum withdrawalstatus{
+  pending
+  approved
+  rejected
+}
+
+model OddsHistory{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  matchbetId String @db.ObjectId
+  teamId Int
+  teamname String
+  odds Float
+  timestamp DateTime @default(now())
+  matchbet Matchbet @relation(fields:[matchbetId],references:[id],onDelete:Cascade)
+  @@index([matchbetId])
+}
+
+model AIInsight{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  matchId String @db.ObjectId
+  type String
+  title String
+  content Json
+  summary String
+  score Float
+  metadata Json?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([matchId])
+  @@index([type])
+}
+
+model ChatMessage{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  sessionId String
+  userId String @db.ObjectId
+  user User @relation("userToChatMessage",fields:[userId],references:[id],onDelete:Cascade)
+  role String
+  content String
+  context Json?
+  metadata Json?
+  createdAt DateTime @default(now())
+  @@index([sessionId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ScrapedDocument{
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  source String
+  url String
+  title String
+  content String
+  hash String @unique
+  category String
+  entities Json?
+  vectorIds String[]
+  isEmbedded Boolean @default(false)
+  scrapedAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([source])
+  @@index([category])
+  @@index([scrapedAt])
 }

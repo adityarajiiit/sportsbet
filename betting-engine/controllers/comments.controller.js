@@ -38,38 +38,50 @@ return res.json({newcomment})
 }
 const getComments=async(req,res)=>{
     try{
-  const userId=req.userId
-const user=await prisma.user.findUnique({
-    where:{
-        id:userId
-    }
-})
-if(!user){
-    return res.json({error:"no user"})
-}
-const data=req.body
+const data=req.query
+console.log(data)
 const comments=await prisma.comment.findMany({
-    where:{
+    where: {
         pagetype:data.pagetype,
         matchId:data.matchId||null,
         playerId:data.playerId||null,
         teamId:data.teamId||null,
         parentcommentId:null
     },
-    include:{
-        replies:true,
-        user:true,
-        match:true,
-        player:true,
-        team:true
+    include: {
+        user: true,
+        match: true,
+        player: true,
+        team: true,
+        replies:{
+            include:{
+                user:true
+            }
+        }
     },
 })
-return res.json({comments})
+comments.forEach(comment => {
+    comment.author=comment.user.name
+    comment.date=new Date(comment.createdAt).toLocaleString()
+    comment.chat=comment.message
+    comment.replyto=comment.replyto||null
+    comment.replies=comment.replies.map(reply=>({
+        author:reply.user.name,
+        id:reply.id,
+        replyto:reply.replyto||null,
+        date:new Date(reply.createdAt).toLocaleString(),
+        chat:reply.message,
+        replies:[]
+    }))
+})
+console.log(comments)
+return res.json(comments)
     }
     catch(e){
         return res.json({error:e.message})
     }
 }
+
 const deleteComment=async(req,res)=>{
     try{
   const userId=req.userId

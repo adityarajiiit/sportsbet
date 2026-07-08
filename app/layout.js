@@ -13,6 +13,7 @@ import Navbar from "./components/navbar";
 import { SessionProvider } from "next-auth/react";
 import { useThemeStore } from "./store/useThemestore";
 import { useEffect } from "react";
+import { Toaster } from "sonner";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -57,6 +58,7 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} ${goldman.variable} ${inter.variable} ${poppins.variable} ${anton.variable} antialiased`}
       >
         <SessionProvider>
+          <Toaster position="top-right" richColors closeButton duration={4000} />
           <Navbar />
           <Provider>{children}</Provider>
         </SessionProvider>

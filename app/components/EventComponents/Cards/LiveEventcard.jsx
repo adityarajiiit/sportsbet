@@ -11,16 +11,17 @@ function LiveEventcard({
   team2,
   score1,
   score2,
-  point1,
-  point2,
   image1,
   image2,
+  matchId,
+  status,
   handleSelectedUser,
+  startindex,
+  endindex,
 }) {
   const router = useRouter();
-
   return (
-    <div className="p-6 flex flex-col justify-center items-center bg-base-200 gap-2 rounded-xl border border-neutral-content/5">
+    <div className="p-6 flex flex-col max-h-[15rem] justify-center items-center bg-base-200 gap-2 rounded-xl border border-neutral-content/5 h-[205px]">
       <div className="w-full flex justify-between ">
         <h1 className="font-medium font-poppins text-neutral-200 flex gap-2 justify-center items-center text-sm">
           <FaFlag />
@@ -29,7 +30,7 @@ function LiveEventcard({
         <button
           className="font-poppins text-xs p-1 bg-base-content/20 rounded-full px-3 font-semibold flex justify-center items-center gap-1"
           onClick={() => {
-            router.push("/event/score");
+            router.push(`/event/score/${matchId}`);
             handleSelectedUser();
           }}
         >
@@ -59,6 +60,9 @@ function LiveEventcard({
             <p className="font-semibold font-poppins">{score2}</p>
           </div>
         </div>
+      </div>
+      <div className="w-full flex justify-center items-center mt-2">
+        <p>{status}</p>
       </div>
     </div>
   );

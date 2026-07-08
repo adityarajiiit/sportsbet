@@ -1,7 +1,7 @@
 import s3 from '../services/aws.client.js'
 import dotenv from 'dotenv'
 import {PrismaClient} from "@prisma/client"
-import {CreateBucketCommand, DeleteBucketCommand,PutObjectCommand,DeleteObjectCommand, GetObjectCommand} from "@aws-sdk/client-s3";
+import {CreateBucketCommand, DeleteBucketCommand,PutObjectCommand,DeleteObjectCommand, GetObjectCommand, ListObjectsV2Command} from "@aws-sdk/client-s3";
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 
@@ -38,6 +38,12 @@ export const deleteBucket=async(req,res)=>{
             return res.json({error:"no user found"})
         }
         const bucketname=`sportsbet-${userId}`
+        const listedObjects = await s3.send(new ListObjectsV2Command({ Bucket: bucketname }));
+        if (listedObjects.Contents && listedObjects.Contents.length > 0) {
+            for (const obj of listedObjects.Contents) {
+                await s3.send(new DeleteObjectCommand({ Bucket: bucketname, Key: obj.Key }));
+            }
+        }
         await s3.send(new DeleteBucketCommand({
             Bucket:bucketname
         }))
@@ -118,7 +124,7 @@ export const deleteFile=async(req,res)=>{
 }
 export const tempbucket=async(req,res)=>{
     try{
-        const bucketname=`sportsbet-${req.body.userId}-temp`
+        const bucketname=`sportsbet-${req.userId}-temp`
         console.log(bucketname)
         const temp=await s3.send(new CreateBucketCommand({
             Bucket:bucketname
@@ -132,7 +138,7 @@ export const tempbucket=async(req,res)=>{
 }
 export const tempbucketdelete=async(req,res)=>{
     try{
-        const bucketname=`sportsbet-${req.body.userId}-temp`
+        const bucketname=`sportsbet-${req.userId}-temp`
         await s3.send(new DeleteBucketCommand({
             Bucket:bucketname
         }))
@@ -145,7 +151,7 @@ export const tempbucketdelete=async(req,res)=>{
 export const tempputfile=async(req,res)=>{
     try{
         
-        const bucketname=`sportsbet-${req.body.userId}-temp`
+        const bucketname=`sportsbet-${req.userId}-temp`
         console.log(bucketname)
         const file=req.file
         if(!file){
@@ -174,7 +180,7 @@ export const tempputfile=async(req,res)=>{
 }
 export const deletefiletemp=async(req,res)=>{
     try{
-        const bucketname=`sportsbet-${req.body.userId}-temp`
+        const bucketname=`sportsbet-${req.userId}-temp`
         const key=req.body.key
         await s3.send(new DeleteObjectCommand({
             Bucket:bucketname,
