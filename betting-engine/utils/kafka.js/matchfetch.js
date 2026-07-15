@@ -1,6 +1,6 @@
 import { producer } from "./producer.js";
 import dotenv from "dotenv";
-dotenv.config({path:'../../.env'})
+dotenv.config({path:'../.env'})
 import axios from "axios";
 import cron from "node-cron";
 import {PrismaClient} from "@prisma/client"

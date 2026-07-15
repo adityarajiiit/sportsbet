@@ -27,7 +27,8 @@ import { settleMatchesWorker } from './utils/settlement.worker.js';
 import cryptoRoutes from './routes/crypto.routes.js';
 import {socketfunction} from './services/socket.js'
 import cookieParser from 'cookie-parser';
-
+import aiRoutes from './routes/ai.routes.js'
+import { fetchAllMatches } from './fetchmatches.js';
 const app=express()
 app.use(express.json())
 const server=createServer(app)
@@ -38,16 +39,16 @@ const io=new Server(server,{
         credentials:true
     }
 })
-await socketfunction(io)
-await betsConsumer()
-await matchfetch()
-await stockConsumer()
-
+socketfunction(io)
+betsConsumer()
+matchfetch()
+stockConsumer()
+// fetchAllMatches()
 
 app.use(cors({
-    origin: 'http://localhost:3000',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-    credentials: true
+    origin:'http://localhost:3000',
+    methods:['GET','POST','PUT','DELETE', 'PATCH'],
+    credentials:true
 }));
 app.use(arcjetMiddleware)
 app.use(cookieParser())
@@ -63,6 +64,7 @@ app.use('/api/reminders',reminderRoutes)
 app.use('/api/stocks',stockRoutes)
 app.use('/api/aws',awsRoutes)
 app.use('/api/crypto',cryptoRoutes)
+app.use('/api/ai',aiRoutes)
 app.use('/api/inngest',serve({
     client:inngest,
     functions

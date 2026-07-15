@@ -39,4 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-/betting-engine/.env
+/ai-engine/.env
+
+# python
+__pycache__/
+*.pyc
+
+# virtual environments
+venv/
+.venv/
