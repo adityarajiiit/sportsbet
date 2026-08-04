@@ -487,7 +487,6 @@ model ChatMessage{
   @@index([userId])
   @@index([createdAt])
 }
-
 model ScrapedDocument{
   id String @id @default(auto()) @map("_id") @db.ObjectId
   source String
