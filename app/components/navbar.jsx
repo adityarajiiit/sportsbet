@@ -15,46 +15,47 @@ import { MdAddCard } from "react-icons/md";
 import { BackgroundGradient } from "@/components/ui/backgroundgradient";
 import AlertsPanel from "./ai/AlertsPanel";
 import { FaUserLock } from "react-icons/fa";
-import axios from "axios";
 import { useUserStore } from "../store/useUserStore";
-import {io} from "socket.io-client";
-import {toast} from "sonner";
+import { io } from "socket.io-client";
+import { toast } from "sonner";
 function Navbar() {
-  const {data:session}=useSession()
-  const {theme}=useThemeStore()
-  const {walletBalance,refreshUser}=useUserStore()
-  useEffect(()=>{
-    refreshUser()
-  },[])
-  useEffect(()=>{
-    if(!session?.user?.id) return
-    const socket=io(process.env.NEXT_PUBLIC_API_URL||"http://localhost:4000")
-    socket.on("connect",()=>{
-      socket.emit("join-room",session.user.id)
-    })
-    socket.on("reminder",(data)=>{
-      toast(data.message,{
-        duration:10000,
-        position:"top-center"
-      })
-    })
-    socket.on("notification",(data)=>{
-      toast(data.message,{
-        duration:6000,
-        position:"top-right"
-      })
-    })
-    return()=>{
-      socket.emit("leave-room",session.user.id)
-      socket.off("connect")
-      socket.off("reminder")
-      socket.off("notification")
-      socket.disconnect()
-    }
-  },[session?.user?.id])
+  const { data: session } = useSession();
+  const { theme } = useThemeStore();
+  const { walletBalance, refreshUser } = useUserStore();
+  useEffect(() => {
+    refreshUser();
+  }, []);
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const socket = io(
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
+    );
+    socket.on("connect", () => {
+      socket.emit("join-room", session.user.id);
+    });
+    socket.on("reminder", (data) => {
+      toast(data.message, {
+        duration: 10000,
+        position: "top-center",
+      });
+    });
+    socket.on("notification", (data) => {
+      toast(data.message, {
+        duration: 6000,
+        position: "top-right",
+      });
+    });
+    return () => {
+      socket.emit("leave-room", session.user.id);
+      socket.off("connect");
+      socket.off("reminder");
+      socket.off("notification");
+      socket.disconnect();
+    };
+  }, [session?.user?.id]);
   return (
     <header
-      className="flex justify-between items-center p-3 w-full h-20 absolute top-0 z-10 bg-transparent "
+      className="flex justify-between items-center p-3 pr-0 w-full h-20 absolute top-0 z-10 bg-transparent "
       data-theme={theme}
     >
       <div className="flex justify-center items-center gap-2 pl-2">
@@ -94,24 +95,6 @@ function Navbar() {
             <p className="font-normal font-poppins text-sm  ">Dashboard</p>
           </Link>
         </div>
-        <BackgroundGradient className="rounded-full flex items-center justify-between bg-base-100 gap-2 w-32 p-1 px-2">
-          <div className="flex items-center gap-2">
-            <div
-              className="h-10 w-10 rounded-full flex items-center justify-center bg-[rgba(248,248,248,0.01)]
-            shadow-[0px_0px_8px_0px_rgba(248,248,248,0.25)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]"
-            >
-              <MdAddCard className="size-5" />
-            </div>
-            <div className="flex flex-col justify-center items-start p-1">
-              <p className="text-warning text-xs font-poppins font-medium">
-                Balance
-              </p>
-              <span className="text-base -mt-0.5 font-bold font-inter">
-                ₹{walletBalance.toFixed(2)}
-              </span>
-            </div>
-          </div>
-        </BackgroundGradient>
       </div>
       <div className="hidden lg:flex items-center gap-2">
         <AlertsPanel />
@@ -131,11 +114,18 @@ function Navbar() {
         ) : (
           <Link
             href="/login"
+            onClick={() => signIn()}
             className="px-6 py-3 rounded-full bg-[#b6e24e] font-bold text-base-100 tracking-widest uppercase transform hover:scale-102 hover:bg-[#FFB22C] transition-all duration-200 font-inter text-sm "
           >
             Log In
           </Link>
         )}
+        <div className="flex justify-center items-end pr-2 flex-col font-poppins font-semibold text-xs clip-custom w-36 h-16 bg-info">
+          <span className="text-base-100 text-xs">Balance</span>
+          <span className="text-info-content text-lg sm:text-xl font-bold">
+            ₹{walletBalance.toFixed(2)}
+          </span>
+        </div>
       </div>
       <div className="lg:hidden flex items-center gap-2">
         <AlertsPanel />
@@ -182,7 +172,6 @@ function Navbar() {
               <MdSpaceDashboard className="size-4" />{" "}
               <p className="font-normal font-poppins">Dashboard</p>
             </Link>
-            <div></div>
             {session ? (
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
@@ -194,12 +183,19 @@ function Navbar() {
               <Link
                 className="flex justify-start items-center p-2 gap-1  font-medium font-poppins text-sm hover:bg-base-300 rounded-xs"
                 href="/login"
+                onClick={() => signIn()}
               >
                 <TbLogout className="stroke-2 size-4" />
                 Log In
               </Link>
             )}
           </ul>
+        </div>
+        <div className="flex justify-center items-end pr-2 flex-col font-poppins font-semibold text-xs clip-custom w-36 h-16 bg-info">
+          <span className="text-base-100 text-xs">Balance</span>
+          <span className="text-info-content text-lg sm:text-xl font-bold">
+            ₹{walletBalance.toFixed(2)}
+          </span>
         </div>
       </div>
     </header>
