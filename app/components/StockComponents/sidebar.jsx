@@ -5,6 +5,7 @@ import { useSelectedStock } from "@/app/store/useSelectedStock";
 import Image from "next/image";
 import { FaTrophy } from "react-icons/fa6";
 import { TbCoinRupeeFilled } from "react-icons/tb";
+import NoDataState from "@/components/ui/NoDataState";
 function Sidebar({ teams = [], players = [], category }) {
   const { selectedPlayer, setSelectedPlayer, selectedTeam, setSelectedTeam } =
     useSelectedStock();
@@ -14,7 +15,7 @@ function Sidebar({ teams = [], players = [], category }) {
   const handleSelect = (user) => {
     if (isPlayerCategory) {
       setSelectedPlayer(user);
-      setSelectedTeam(null); 
+      setSelectedTeam(null);
     } else {
       setSelectedTeam(user);
       setSelectedPlayer(null);
@@ -63,7 +64,7 @@ function Sidebar({ teams = [], players = [], category }) {
                 </span>
                 <span className="flex justify-center items-center gap-0.5 font-inter text-xs text-gray-400">
                   <TbCoinRupeeFilled />
-                  &#8377;{user.price}
+                  &#8377;{user.price.toFixed(2)}
                 </span>
               </div>
             </div>
@@ -73,5 +74,4 @@ function Sidebar({ teams = [], players = [], category }) {
     </aside>
   );
 }
-
 export default Sidebar;

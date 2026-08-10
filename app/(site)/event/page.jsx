@@ -43,7 +43,6 @@ useEffect(()=>{
     
     <div className="pt-20">
       <LiveEvent />
-     
     </div>
   );
 }

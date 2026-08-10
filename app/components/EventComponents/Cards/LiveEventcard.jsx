@@ -28,13 +28,14 @@ function LiveEventcard({
           {title}
         </h1>
         <button
-          className="font-poppins text-xs p-1 bg-base-content/20 rounded-full px-3 font-semibold flex justify-center items-center gap-1"
+          className="group font-poppins text-xs font-semibold btn btn-sm btn-info"
           onClick={() => {
             router.push(`/event/score/${matchId}`);
             handleSelectedUser();
           }}
         >
-          VIEW <FaArrowCircleRight />
+          View Score
+          <FaArrowCircleRight className="transition-transform duration-200 group-hover:translate-x-1.5" />
         </button>
       </div>
       <div className="flex flex-col justify-center items-start gap-2 w-full mt-2">
@@ -62,7 +63,7 @@ function LiveEventcard({
         </div>
       </div>
       <div className="w-full flex justify-center items-center mt-2">
-        <p>{status}</p>
+        <p className="font-poppins font-semibold text-sm">{status}</p>
       </div>
     </div>
   );

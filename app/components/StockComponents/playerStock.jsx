@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect,useRef } from "react";
+import React, { useEffect, useRef } from "react";
 import Image from "next/image";
 import { IoMdPricetags } from "react-icons/io";
 import { TbCoinRupeeFilled } from "react-icons/tb";
@@ -17,336 +17,375 @@ import volume from "@/public/volume.png";
 import PlayerStats from "./Stats/PlayerStats";
 import PriceHistoryGraph from "./PriceHistoryGraph";
 import io from "socket.io-client";
-import Avatar from 'react-avatar'
-import axios from 'axios'
+import CommentSection from "@/components/blocks/ChatComponents/CommentSection";
+import axios from "axios";
 import { useUserStore } from "@/app/store/useUserStore.jsx";
-import { IoSend } from "react-icons/io5";
-import { HoverBorderGradient } from "@/components/ui/bg-gradient";
-import { useSelectedEvent } from "@/app/store/useSelectedEvent";
-import { Label, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts";
-import { FaReply } from "react-icons/fa";
-import { MdCancel } from "react-icons/md";
-import { FaHourglassStart } from "react-icons/fa";
-import { FaHourglassEnd } from "react-icons/fa";
-import { motion, AnimatePresence } from "motion/react";
 import { toast } from "sonner";
+import PlayerTradeControls from "@/components/blocks/stockDialogs/Playertradecontrols";
+import Loading from "@/app/loading";
 function PlayerStock({ player }) {
-
   const [socket, setSocket] = useState(null);
-  const [CommentIndex, setCommentIndex] = useState(null);
   const session = useSession();
-  const {refreshUser}=useUserStore()
-  const [buyDialog,setBuyDialog]=useState(false)
-  const [sellDialog,setSellDialog]=useState(false)
-  const [showReplies, setShowReplies] = useState(null);
-  const [replyIndex, setReplyIndex] = useState(null);
-  const [stockholder,setstockHolder]=useState({shares:0,averageprice:0})
-  const [buyStopLoss,setBuyStopLoss]=useState(false)
-  const [buyTakeProfit,setBuyTakeProfit]=useState(false)
-  const [sellStopLoss,setSellStopLoss]=useState(false)
-  const [sellTakeProfit,setSellTakeProfit]=useState(false)
-  const [usercomment,setUsercomment]=useState({
-      null:""
-    })
-    const [playerStock,setPlayerStock]=useState({
-      price:player.price,
-      volume:player.volume,
-      marketCapital:player.marketCapital,
-      PriceChange:player.PriceChange,
-      shares:player.stock[0]?.shares||1000
-    })
-  const [comments,setComments]=useState([
-      
-  ])
+  const { refreshUser } = useUserStore();
+  const [buyDialog, setBuyDialog] = useState(false);
+  const [sellDialog, setSellDialog] = useState(false);
+  const [stockholder, setstockHolder] = useState({
+    shares: 0,
+    averageprice: 0,
+  });
+  const [buyStopLoss, setBuyStopLoss] = useState(false);
+  const [buyTakeProfit, setBuyTakeProfit] = useState(false);
+  const [sellStopLoss, setSellStopLoss] = useState(false);
+  const [sellTakeProfit, setSellTakeProfit] = useState(false);
+  const [playerStock, setPlayerStock] = useState({
+    price: player.price,
+    volume: player.volume,
+    marketCapital: player.marketCapital,
+    PriceChange: player.PriceChange,
+    shares: player.stock[0]?.shares || 1000,
+  });
+  const [comments, setComments] = useState([]);
   const [noOfStocks, setnoOfStocks] = useState(0);
   const [noOfStocksSell, setnoOfStocksSell] = useState(0);
   const [ExitPrice, setExitPrice] = useState(0);
   const [StopLossPrice, setStopLossPrice] = useState(0);
-  const ExitPriceRef=useRef(0)
-  const StopLossPriceRef=useRef(0)
-  useEffect(()=>{ExitPriceRef.current=ExitPrice},[ExitPrice])
-  useEffect(()=>{StopLossPriceRef.current=StopLossPrice},[StopLossPrice])
-   const getComments=async()=>{
-    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/comments/getcomments`,{
-      params:{
-        pagetype:"player",
-        playerId:player.id,
-        parentcommentId:null
-      }
-    },{
-      headers:{
-        "Content-Type":"application/json"
-      }
-    })
-    const result=response.data
-    const allcomments=result.map((comment)=>{
-      return{
-        author:comment.user.name,
-        id:comment.id,
-        date:new Date(comment.createdAt).toLocaleString(),
-        chat:comment.message,
-        replies:comment.replies,
-        replyto:comment.replyto||null
-      }
-    })
-    setComments(allcomments)
-    console.log(result)
-  }
-  const newComment=async(message,parentId,replyto)=>{
-    if(!session?.data?.user){
-      toast.error("Please login to comment")
-      return
-    }
-    const data={
-      pagetype:"player",
-      playerId:player.id,
-      parentcommentId:parentId||null,
-      email:session?.data?.user?.email,
-      message,
-      replyto
-    }
-    
-    socket.emit('new-comment',{data})
-  
-  }
-  const newBuytransaction=async(shares,price,total)=>{
-    if(!session?.data?.user){
-      toast.error("Please login to buy stocks")
-      return
-    }
-    if(parseInt(shares)<=0){
-      toast.error("Please select at least 1 share")
-      return
-    }
-    try{
-    const data={
-      stocktype:"player",
-      stockId:player.stock[0]?.id,
-      playerId:player.id,
-      userId:session?.data?.user?.id,
-      type:"buy",
-      price:parseFloat(price),
-      shares:parseInt(shares),
-      total:parseFloat(total),
-    }
-    const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/newtrans`,data,{
-      headers:{
-        "Content-Type":"application/json"
+  const [isLoading, setIsLoading] = useState(true);
+  const ExitPriceRef = useRef(0);
+  const StopLossPriceRef = useRef(0);
+  useEffect(() => {
+    ExitPriceRef.current = ExitPrice;
+  }, [ExitPrice]);
+  useEffect(() => {
+    StopLossPriceRef.current = StopLossPrice;
+  }, [StopLossPrice]);
+  const getComments = async () => {
+    const response = await axios.get(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/comments/getcomments`,
+      {
+        params: {
+          pagetype: "player",
+          playerId: player.id,
+          parentcommentId: null,
+        },
       },
-      withCredentials:true
-    })
-    if(response.data?.error){
-      toast.error(response.data.error)
-      return
-    }
-    const stockholderId=response.data?.stockholderId||response.data?.transaction?.stockholderId
-    if(buyStopLoss){
-      setStopLoss("buy",stockholderId)
-    }
-    if(buyTakeProfit){
-      setTakeprofit("buy",stockholderId)
-    }
-    console.log(response.data)
-    toast.success(`Bought ${shares} shares of ${player.name} at ₹${parseFloat(price).toFixed(2)}`)
-    refreshUser()
-    getStockholder()
-    document.getElementById("Buy_stock").close()
-    setnoOfStocks(0)
-    }catch(e){
-      toast.error(e.message)
-    }
-  }
-  const getStockholder=async()=>{
-    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/stockholder`,{
-      params:{
-        stockId:player.stock[0]?.id,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
       },
-      withCredentials:true
-    })
-    if(response.data&&!response.data.error){
-    const data={
-      shares:response.data.shares||0,
-      averageprice:response.data.averageprice||0
-    }
-    console.log(data)
-    setstockHolder(data)
-    }
-  }
-  const newSelltransaction=async(shares,price,total)=>{
-    if(!session?.data?.user){
-      toast.error("Please login to sell stocks")
-      return
-    }
-    if(parseInt(shares)<=0){
-      toast.error("Please select at least 1 share to sell")
-      return
-    }
-    if(parseInt(shares)>stockholder.shares){
-      toast.error(`You only own ${stockholder.shares} shares`)
-      return
-    }
-    try{
-    const data={
-      stocktype:"player",
-      stockId:player.stock[0]?.id,
-      playerId:player.id,
-      userId:session?.data?.user?.id,
-      type:"sell",
-      price:parseFloat(price),
-      shares:parseInt(shares),
-      total:parseFloat(total),
-    }
-    
-    const  response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/selltrans`,data,{
-      headers:{
-        "Content-Type":"application/json"
-      },
-      withCredentials:true
-    })
-    if(response.data?.error){
-      toast.error(response.data.error)
-      return
-    }
-    console.log(response.data)
-    toast.success(`Sold ${shares} shares of ${player.name} at ₹${parseFloat(price).toFixed(2)}`)
-    refreshUser()
-    getStockholder()
-    document.getElementById("sell_stocks").close()
-    setnoOfStocksSell(0)
-    const stockholderId=response.data?.stockholderId||response.data?.transaction?.stockholderId
-    if(sellStopLoss){
-      setStopLoss("sell",stockholderId)
-    }
-    if(sellTakeProfit){
-      setTakeprofit("sell",stockholderId)
-    }
-    }catch(e){
-      toast.error(e.message)
-    }
-   
-  }
-  const setStopLoss=async(type,stockholderId)=>{
-    if(!session?.data?.user){
-      toast.error("Please login to set stop loss")
-      return
-    }
-    const data={
-      pagetype:"player",
-      stockholderId:stockholderId,
-      condition:{
-        type:"sl",
-        order:type,
-        value:StopLossPriceRef.current
-      }
-    }
-    const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,data,{
-      headers:{
-        "Content-Type":"application/json"
-      },
-      withCredentials:true
-    })
-    console.log(response.data)
-  }
-  const setTakeprofit=async(type,stockholderId)=>{
-    if(!session?.data?.user){
-      toast.error("Please login to set take profit")
-      return
-    }
-    const data={
-      pagetype:"player",
-      stockholderId:stockholderId,
-      condition:{
-        type:"tp",
-        order:type,
-        value:ExitPriceRef.current
-      }
-    }
-    const response=await axios.post(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,data,{
-      headers:{
-        "Content-Type":"application/json"
-      },
-      withCredentials:true
-    })
-    console.log(response.data)
-    
-  }
-  const getPlayer=async()=>{
-    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getplayer`,{
-      params:{
-        id:player.id
-      }
-    })
-    const pdata=response.data
-    console.log(pdata)
-    setPlayerStock(prev=>({
-      ...prev,
-      price:pdata.stock?.[0].price,
-      marketCapital:pdata.stock[0].total,
-      shares:pdata.stock?.[0].shares
-    }))
-  }
-  useEffect(()=>{
-    getPlayer()
-    getComments()
-    getStockholder()
-    const socketInstance=io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000")
-    setSocket(socketInstance)
-    socketInstance.on("connect",()=>{
-      socketInstance.emit("join-room",player.id)
-    })
-    socketInstance.on("stock-update",(data)=>{
-      if(data.stockId===player.stock[0]?.id){
-        const updatedstock=data.stock
-        setPlayerStock(prev=>({
-          ...prev,
-          price:updatedstock.price,
-          shares:updatedstock.shares,
-          marketCapital:updatedstock.total,
-        }))
-        getStockholder()
-      }
-    })
-    
-    socketInstance.on("comment-added",(data)=>{
-      if(data.playerId!==player.id) return
-  const receivedcomment={
-    author:data.name,
-    id:data.id,
-    date:new Date(data.createdAt).toLocaleString(),
-    chat:data.message,
-    replies:data.replies,
-    replyto:data.replyto||null
-  }
-  if(data.parentcommentId===null){
-    setComments(prevComments=>[...prevComments,receivedcomment])
-  }
-  else{
-    setComments(prevComments=>{
-      const updatedComments=[...prevComments]
-      const index=updatedComments.findIndex(comment=>comment.id===data.parentcommentId)
-      if(index!==-1){
-        updatedComments[index]={
-          ...updatedComments[index],
-          replies:[...(updatedComments[index].replies||[]),receivedcomment]
-        }
-      }
-      return updatedComments
+    );
+    const result = response.data;
+    const allcomments = result.map((comment) => {
+      return {
+        author: comment.user.name,
+        id: comment.id,
+        date: new Date(comment.createdAt).toLocaleString(),
+        chat: comment.message,
+        replies: comment.replies,
+        replyto: comment.replyto || null,
+      };
     });
-  }
-
-})
-    return ()=>{
-      socketInstance.emit("leave-room",player.id)
-      socketInstance.off("stock-update")
-      socketInstance.off("comment-added")
-      socketInstance.off("connect")
-      socketInstance.disconnect()
+    setComments(allcomments);
+    console.log(result);
+  };
+  const newComment = async (message, parentId, replyto) => {
+    if (!session?.data?.user) {
+      toast.error("Please login to comment");
+      return;
     }
-  },[player.id])
+    const data = {
+      pagetype: "player",
+      playerId: player.id,
+      parentcommentId: parentId || null,
+      email: session?.data?.user?.email,
+      message,
+      replyto,
+    };
+
+    socket.emit("new-comment", { data });
+  };
+
+  const newBuytransaction = async (shares, price, total) => {
+    if (!session?.data?.user) {
+      toast.error("Please login to buy stocks");
+      return;
+    }
+    if (parseInt(shares) <= 0) {
+      toast.error("Please select at least 1 share");
+      return;
+    }
+    try {
+      const data = {
+        stocktype: "player",
+        stockId: player.stock[0]?.id,
+        playerId: player.id,
+        userId: session?.data?.user?.id,
+        type: "buy",
+        price: parseFloat(price),
+        shares: parseInt(shares),
+        total: parseFloat(total),
+      };
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/newtrans`,
+        data,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        },
+      );
+      if (response.data?.error) {
+        toast.error(response.data.error);
+        return;
+      }
+      const stockholderId =
+        response.data?.stockholderId ||
+        response.data?.transaction?.stockholderId;
+      if (buyStopLoss) {
+        setStopLoss("buy", stockholderId);
+      }
+      if (buyTakeProfit) {
+        setTakeprofit("buy", stockholderId);
+      }
+      console.log(response.data);
+      toast.success(
+        `Bought ${shares} shares of ${player.name} at ₹${parseFloat(price).toFixed(2)}`,
+      );
+      refreshUser();
+      getStockholder();
+      document.getElementById("Buy_stock").close();
+      setnoOfStocks(0);
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+  const getStockholder = async () => {
+    const response = await axios.get(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/stockholder`,
+      {
+        params: {
+          stockId: player.stock[0]?.id,
+        },
+        withCredentials: true,
+      },
+    );
+    if (response.data && !response.data.error) {
+      const data = {
+        shares: response.data.shares || 0,
+        averageprice: response.data.averageprice || 0,
+      };
+      console.log(data);
+      setstockHolder(data);
+    }
+  };
+  const newSelltransaction = async (shares, price, total) => {
+    if (!session?.data?.user) {
+      toast.error("Please login to sell stocks");
+      return;
+    }
+    if (parseInt(shares) <= 0) {
+      toast.error("Please select at least 1 share to sell");
+      return;
+    }
+    if (parseInt(shares) > stockholder.shares) {
+      toast.error(`You only own ${stockholder.shares} shares`);
+      return;
+    }
+    try {
+      const data = {
+        stocktype: "player",
+        stockId: player.stock[0]?.id,
+        playerId: player.id,
+        userId: session?.data?.user?.id,
+        type: "sell",
+        price: parseFloat(price),
+        shares: parseInt(shares),
+        total: parseFloat(total),
+      };
+
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/selltrans`,
+        data,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+          withCredentials: true,
+        },
+      );
+      if (response.data?.error) {
+        toast.error(response.data.error);
+        return;
+      }
+      console.log(response.data);
+      toast.success(
+        `Sold ${shares} shares of ${player.name} at ₹${parseFloat(price).toFixed(2)}`,
+      );
+      refreshUser();
+      getStockholder();
+      document.getElementById("sell_stocks").close();
+      setnoOfStocksSell(0);
+      const stockholderId =
+        response.data?.stockholderId ||
+        response.data?.transaction?.stockholderId;
+      if (sellStopLoss) {
+        setStopLoss("sell", stockholderId);
+      }
+      if (sellTakeProfit) {
+        setTakeprofit("sell", stockholderId);
+      }
+    } catch (e) {
+      toast.error(e.message);
+    }
+  };
+  const setStopLoss = async (type, stockholderId) => {
+    if (!session?.data?.user) {
+      toast.error("Please login to set stop loss");
+      return;
+    }
+    const data = {
+      pagetype: "player",
+      stockholderId: stockholderId,
+      condition: {
+        type: "sl",
+        order: type,
+        value: StopLossPriceRef.current,
+      },
+    };
+    const response = await axios.post(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,
+      data,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        withCredentials: true,
+      },
+    );
+    console.log(response.data);
+  };
+  const setTakeprofit = async (type, stockholderId) => {
+    if (!session?.data?.user) {
+      toast.error("Please login to set take profit");
+      return;
+    }
+    const data = {
+      pagetype: "player",
+      stockholderId: stockholderId,
+      condition: {
+        type: "tp",
+        order: type,
+        value: ExitPriceRef.current,
+      },
+    };
+    const response = await axios.post(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,
+      data,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        withCredentials: true,
+      },
+    );
+    console.log(response.data);
+  };
+  const getPlayer = async () => {
+    const response = await axios.get(
+      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getplayer`,
+      {
+        params: {
+          id: player.id,
+        },
+      },
+    );
+    const pdata = response.data;
+    console.log(pdata);
+    setPlayerStock((prev) => ({
+      ...prev,
+      price: pdata.stock?.[0].price,
+      marketCapital: pdata.stock[0].total,
+      shares: pdata.stock?.[0].shares,
+    }));
+  };
+  useEffect(() => {
+    setIsLoading(true);
+    const socketInstance = io(
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
+    );
+    setSocket(socketInstance);
+    socketInstance.on("connect", () => {
+      socketInstance.emit("join-room", player.id);
+    });
+    socketInstance.on("stock-update", (data) => {
+      if (data.stockId === player.stock[0]?.id) {
+        const updatedstock = data.stock;
+        setPlayerStock((prev) => ({
+          ...prev,
+          price: updatedstock.price,
+          shares: updatedstock.shares,
+          marketCapital: updatedstock.total,
+        }));
+        getStockholder();
+      }
+    });
+
+    socketInstance.on("comment-added", (data) => {
+      if (data.playerId !== player.id) return;
+      const receivedcomment = {
+        author: data.name,
+        id: data.id,
+        date: new Date(data.createdAt).toLocaleString(),
+        chat: data.message,
+        replies: data.replies,
+        replyto: data.replyto || null,
+      };
+      if (data.parentcommentId === null) {
+        setComments((prevComments) => [...prevComments, receivedcomment]);
+      } else {
+        setComments((prevComments) => {
+          const updatedComments = [...prevComments];
+          const index = updatedComments.findIndex(
+            (comment) => comment.id === data.parentcommentId,
+          );
+          if (index !== -1) {
+            updatedComments[index] = {
+              ...updatedComments[index],
+              replies: [
+                ...(updatedComments[index].replies || []),
+                receivedcomment,
+              ],
+            };
+          }
+          return updatedComments;
+        });
+      }
+    });
+    return () => {
+      socketInstance.emit("leave-room", player.id);
+      socketInstance.off("stock-update");
+      socketInstance.off("comment-added");
+      socketInstance.off("connect");
+      socketInstance.disconnect();
+    };
+  }, [player.id]);
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        await Promise.allSettled([getPlayer(), getComments(), getStockholder()]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadInitialData();
+  }, [player.id]);
   const items = [
     {
       title: "Market Price",
-      description: playerStock.price,
+      description: playerStock.price.toFixed(3),
       icon: (
         <IoMdPricetags className="size-8 text-warning p-2 bg-warning/15 rounded-full" />
       ),
@@ -363,7 +402,7 @@ function PlayerStock({ player }) {
     },
     {
       title: "Market Capital",
-      description: playerStock.marketCapital,
+      description: playerStock.marketCapital.toFixed(3),
       icon: (
         <TrendingUp className="size-8 text-warning p-2 bg-warning/15 rounded-full" />
       ),
@@ -371,13 +410,18 @@ function PlayerStock({ player }) {
     },
     {
       title: "Price Change (1D)",
-      description: playerStock.PriceChange,
+      description: playerStock.PriceChange.toFixed(3),
       icon: (
         <TbCoinRupeeFilled className="size-8 text-warning p-2 bg-warning/15 rounded-full" />
       ),
       image: bar,
     },
   ];
+
+  if (isLoading) {
+    return <Loading />;
+  }
+
   return (
     <div className="w-full h-full bg-base-300/50 rounded-xl p-2 sm:p-8 overflow-y-auto">
       <div className="flex flex-col justify-center md:justify-start items-center gap-4 w-full border px-2 py-6 sm:px-3 rounded-2xl border-base-content/20">
@@ -409,250 +453,29 @@ function PlayerStock({ player }) {
                 </div>
               </div>
             </div>
-
-            <div className="flex md:flex-col items-center justify-center md:justify-start gap-2 h-full">
-              <button
-                className="btn btn-active btn-info min-w-full sm:min-w-40 rounded-xl"
-                onClick={() => document.getElementById("Buy_stock").showModal()}
-              >
-                Buy
-              </button>
-              <dialog id="Buy_stock" className="modal" open={buyDialog}>
-                <div className="modal-box">
-                  <form method="dialog">
-                    <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
-                      ✕
-                    </button>
-                  </form>
-                  <p className="pb-2 text-xs font-poppins">
-                    Press ESC key or click on ✕ button to close
-                  </p>
-                  <h3 className="text-lg font-semibold font-poppins">
-                    {player.name}
-                  </h3>
-                  <div className="badge badge-soft badge-info rounded-sm text-sm px-4">
-                    {player.sport}
-                  </div>
-                  {stockholder.shares>0&&(
-                    <div className="mt-2 p-2 bg-base-200 rounded-lg text-xs font-poppins">
-                      <p>You hold <span className="font-bold text-info">{stockholder.shares} shares</span> @ avg ₹{stockholder.averageprice?.toFixed(2)}</p>
-                      <p>P&L: <span className={((playerStock.price-stockholder.averageprice)*stockholder.shares)>=0?"text-success":"text-error"}>{((playerStock.price-stockholder.averageprice)*stockholder.shares)>=0?"+":""}{((playerStock.price-stockholder.averageprice)*stockholder.shares).toFixed(2)}</span></p>
-                    </div>
-                  )}
-                  <p className="text-sm mt-2">Number of stocks</p>
-                  <form action="" className="mt-4 flex flex-col gap-2">
-                    <input
-                      type="range"
-                      min={0}
-                      max={playerStock.shares}
-                      className="range range-info"
-                      value={noOfStocks}
-                      onChange={(e) => setnoOfStocks(e.target.value)}
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      max={playerStock.shares}
-                      className="input input-info w-full"
-                      value={noOfStocks}
-                      onChange={(e)=>setnoOfStocks(Math.min(parseInt(e.target.value)||0,playerStock.shares))}
-                    />
-                    <div className="flex justify-between">
-                      <p className="ml-2 text-base font-medium font-inter">
-                        Number of stocks <br />
-                        <span className="text-xl">{noOfStocks}</span>
-                      </p>
-                      <p className="ml-2 text-base font-medium font-inter">
-                        Total amount <br />
-                        <span className="text-xl">
-                          &#8377;{(noOfStocks * playerStock.price).toFixed(2)}
-                        </span>
-                      </p>
-                    </div>
-                    <fieldset className="fieldset bg-base-100  rounded-box w-full border border-base-content p-4">
-                      <legend className="fieldset-legend text-base font-poppins px-2">
-                        Exit
-                      </legend>
-                      <label className="label">
-                        <input
-                          type="checkbox"
-                          className="checkbox"
-                          onChange={(e)=>setBuyTakeProfit(e.target.checked)}
-                        />
-                        Take Profit
-                      </label>
-                      <p className="text-base font-semibold font-poppins flex justify-between w-full">
-                        Price <span>₹{ExitPrice}</span>
-                      </p>
-                      <input
-                        type="number"
-                        min={0}
-                        max="1000000"
-                        step="5"
-                        value={ExitPrice}
-                        className="input input-info rounded-md w-full"
-                        onChange={(e) => {
-                          setExitPrice(e.target.value);
-                        }}
-                      />
-                      <label className="label mt-2">
-                        <input
-                          type="checkbox"
-                          className="checkbox"
-                          onChange={(e)=>setBuyStopLoss(e.target.checked)}
-                        />
-                        Stop Loss
-                      </label>
-                      <p className="text-base font-semibold font-poppins flex justify-between w-full">
-                        Price <span>₹{StopLossPrice}</span>
-                      </p>
-                      <input
-                        type="number"
-                        min={0}
-                        max="1000000"
-                        step="5"
-                        value={StopLossPrice}
-                        className="input input-info rounded-md w-full"
-                        onChange={(e) => {
-                          setStopLossPrice(e.target.value);
-                        }}
-                      />
-                    </fieldset>
-
-                    <button className="btn btn-info font-poppins text-base mt-1"
-                    onClick={(e)=>{
-                      e.preventDefault()
-                      newBuytransaction(noOfStocks,playerStock.price,noOfStocks*playerStock.price)
-                      setBuyDialog(false)
-                    }}
-                    >
-                      Buy
-                    </button>
-                  </form>
-                </div>
-              </dialog>
-              <button
-                className={`btn btn-active btn-error min-w-full sm:min-w-40 rounded-xl ${stockholder.shares===0?"btn-disabled":""}`}
-                onClick={() =>
-                  document.getElementById("sell_stocks").showModal()
-
-                }
-              >
-                Sell
-              </button>
-              <dialog id="sell_stocks" className="modal" open={sellDialog}>
-                <div className="modal-box">
-                  <form method="dialog">
-                    <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">
-                      ✕
-                    </button>
-                  </form>
-                  <p className="pb-2 text-xs font-poppins">
-                    Press ESC key or click on ✕ button to close
-                  </p>
-                  <h3 className="text-lg font-semibold font-poppins">
-                    {player.name}
-                  </h3>
-                  <div className="badge badge-soft badge-error rounded-sm text-sm px-4">
-                    {player.sport}
-                  </div>
-                  <div className="mt-2 p-2 bg-base-200 rounded-lg text-xs font-poppins">
-                    <p>You hold <span className="font-bold text-error">{stockholder.shares} shares</span> @ avg ₹{stockholder.averageprice?.toFixed(2)}</p>
-                    <p>P&L: <span className={((playerStock.price-stockholder.averageprice)*stockholder.shares)>=0?"text-success":"text-error"}>{((playerStock.price-stockholder.averageprice)*stockholder.shares)>=0?"+":""}{((playerStock.price-stockholder.averageprice)*stockholder.shares).toFixed(2)}</span></p>
-                  </div>
-                  <p className="text-sm mt-2">Number of stocks</p>
-                  <form action="" className="mt-4 flex flex-col gap-2">
-                    <input
-                      type="range"
-                      min={0}
-                      max={stockholder.shares||0}
-                      className="range range-error"
-                      value={noOfStocksSell>stockholder.shares?stockholder.shares:noOfStocksSell}
-                      onChange={(e) => setnoOfStocksSell(e.target.value)}
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      max={stockholder.shares||0}
-                      className="input input-error w-full"
-                      value={noOfStocksSell}
-                      onChange={(e)=>setnoOfStocksSell(Math.min(parseInt(e.target.value)||0,stockholder.shares))}
-                    />
-                    <div className="flex justify-between">
-                      <p className="ml-2 text-base font-medium font-inter">
-                        Number of stocks <br />
-                        <span className="text-xl">{noOfStocksSell}</span>
-                      </p>
-                      <p className="ml-2 text-base font-medium font-inter">
-                        Total amount <br />
-                        <span className="text-xl">
-                          &#8377;{(noOfStocksSell * playerStock.price).toFixed(2)}
-                        </span>
-                      </p>
-                    </div>
-                    <fieldset className="fieldset bg-base-100  rounded-box w-full border border-base-content p-4">
-                      <legend className="fieldset-legend text-base font-poppins px-2">
-                        Exit
-                      </legend>
-                      <label className="label">
-                        <input
-                          type="checkbox"
-                          className="checkbox"
-                          onChange={(e)=>setSellTakeProfit(e.target.checked)}
-                        />
-                        Take Profit
-                      </label>
-                      <p className="text-base font-semibold font-poppins flex justify-between w-full">
-                        Price <span>₹{ExitPrice}</span>
-                      </p>
-                      <input
-                        type="number"
-                        min={0}
-                        max="1000000"
-                        step="5"
-                        value={ExitPrice}
-                        className="input input- rounded-md w-full"
-                        onChange={(e) => {
-                          setExitPrice(e.target.value);
-                        }}
-                      />
-                      <label className="label mt-2">
-                        <input
-                          type="checkbox"
-                          className="checkbox"
-                          onChange={(e)=>setSellStopLoss(e.target.checked)}
-                        />
-                        Stop Loss
-                      </label>
-                      <p className="text-base font-semibold font-poppins flex justify-between w-full">
-                        Price <span>₹{StopLossPrice}</span>
-                      </p>
-                      <input
-                        type="number"
-                        min={0}
-                        max="1000000"
-                        step="5"
-                        value={StopLossPrice}
-                        className="input input- rounded-md w-full"
-                        onChange={(e) => {
-                          setStopLossPrice(e.target.value);
-                        }}
-                      />
-                    </fieldset>
-
-                    <button className="btn btn-error font-poppins border-none text-base mt-1"
-                    onClick={(e)=>{
-                      e.preventDefault()
-                      newSelltransaction(noOfStocksSell,playerStock.price,noOfStocksSell*playerStock.price)
-                      setSellDialog(false)
-                    }}
-                    >
-                      Sell
-                    </button>
-                  </form>
-                </div>
-              </dialog>
-            </div>
+            <PlayerTradeControls
+              player={player}
+              playerStock={playerStock}
+              stockholder={stockholder}
+              buyDialog={buyDialog}
+              setBuyDialog={setBuyDialog}
+              sellDialog={sellDialog}
+              setSellDialog={setSellDialog}
+              noOfStocks={noOfStocks}
+              setnoOfStocks={setnoOfStocks}
+              noOfStocksSell={noOfStocksSell}
+              setnoOfStocksSell={setnoOfStocksSell}
+              ExitPrice={ExitPrice}
+              setExitPrice={setExitPrice}
+              StopLossPrice={StopLossPrice}
+              setStopLossPrice={setStopLossPrice}
+              setBuyTakeProfit={setBuyTakeProfit}
+              setBuyStopLoss={setBuyStopLoss}
+              setSellTakeProfit={setSellTakeProfit}
+              setSellStopLoss={setSellStopLoss}
+              newBuytransaction={newBuytransaction}
+              newSelltransaction={newSelltransaction}
+            />
           </div>
           <div className="w-full flex flex-col justify-center md:items-start items-center">
             <p className="text-sm font-poppins font-semibold mt-4">
@@ -663,13 +486,17 @@ function PlayerStock({ player }) {
                 <legend className="fieldset-legend px-2 font-poppins text-neutral-400 p-0">
                   Role
                 </legend>
-                <p className="px-3 font-poppins font-medium text-sm">{player.role}</p>
+                <p className="px-3 font-poppins font-medium text-sm">
+                  {player.role}
+                </p>
               </fieldset>
               <fieldset className="fieldset bg-base-200 border-base-content/10 rounded-full w-full border p-3">
                 <legend className="fieldset-legend px-2 font-poppins text-neutral-400 p-0">
                   Gender
                 </legend>
-                <p className="px-3 font-poppins font-medium text-sm">{player.gender||"N/A"}</p>
+                <p className="px-3 font-poppins font-medium text-sm">
+                  {player.gender || "N/A"}
+                </p>
               </fieldset>
               {player.sport === "Cricket" ? (
                 <>
@@ -686,7 +513,7 @@ function PlayerStock({ player }) {
                       Country
                     </legend>
                     <p className="px-3 font-poppins font-medium text-sm">
-                      {player.country||player.teamname||"N/A"}
+                      {player.country || player.teamname || "N/A"}
                     </p>
                   </fieldset>
                 </>
@@ -738,224 +565,16 @@ function PlayerStock({ player }) {
         <PlayerStats player={player} />
       </div>
       <div className="h-full w-full border border-base-content/10 rounded-xl mt-6 flex flex-col">
-                <div className="p-3 border-b border-base-content/10">
-                  <p className="font-poppins text-sm font-semibold">Comments()</p>
-                </div>
-                <div className="flex-grow p-3 overflow-y-auto flex flex-col gap-1">
-                  {
-                  comments.map((chat, index) => {
-                    const isReplying = CommentIndex === index
-                    return (
-                      <div key={index} className="p-1 flex items-start gap-3 w-full">
-                        <Avatar name={chat.author} 
-                        className="rounded-full object-cover"
-                        size="2rem"
-                        />
-                        <div className="flex flex-col items-start justify-center w-full">
-                          <p className="text-sm font-inter text-neutral-300  font-medium">
-                            {chat.author}{" "}
-                            <span className="font-inter text-xs text-neutral-400 font-normal ml-1">
-                              {chat.date}
-                            </span>
-                          </p>
-                          <p className="font-inter text-sm font-normal">
-                            {chat.chat}
-                          </p>
-                          <div className="mt-1 flex justify-center items-center gap-4">
-                            <button
-                              className="text-xs font-poppins text-info flex items-center gap-1 relative h-6"
-                              onClick={() =>
-                                setCommentIndex(isReplying ? null : index)
-                              }
-                            >
-                              <AnimatePresence mode="wait" initial={false}>
-                                {isReplying ? (
-                                  <motion.span
-                                    key="cancel"
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 5 }}
-                                    transition={{ duration: 0.25 }}
-                                    className="flex items-center gap-1 "
-                                  >
-                                    <MdCancel /> Cancel
-                                  </motion.span>
-                                ) : (
-                                  <motion.span
-                                    key="reply"
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 5 }}
-                                    transition={{ duration: 0.25 }}
-                                    className="flex items-center gap-1 "
-                                  >
-                                    <FaReply /> Reply
-                                  </motion.span>
-                                )}
-                              </AnimatePresence>
-                            </button>
-                            {chat.replies ? (
-                              showReplies === index ? (
-                                <p
-                                  className="relative text-xs font-poppins text-neutral-300"
-                                  onClick={() => setShowReplies(null)}
-                                >
-                                  Show less replies
-                                </p>
-                              ) : (
-                                <p
-                                  className="relative text-xs font-poppins text-neutral-300"
-                                  onClick={() => setShowReplies(index)}
-                                >
-                                  Show all replies
-                                </p>
-                              )
-                            ) : (
-                              ""
-                            )}
-                          </div>
-      
-                          {CommentIndex === index && (
-                            <form action="" className="w-full mt-2">
-                              <div className="join w-full">
-                                <input
-                                  type="text"
-                                  className="input join-item w-full"
-                                  placeholder="Type your comment here"
-                                  value={usercomment[chat.id]||""}
-                                  onChange={(e)=>setUsercomment({...usercomment,[chat.id]:e.target.value})}
-                                />
-                                <button className="btn join-item bg-white text-black"
-                                onClick={(e)=>{
-                                  e.preventDefault()
-                                  newComment(usercomment[chat.id],chat.id,null)
-                                
-                                  setUsercomment({...usercomment,[chat.id]:""})
-                                  setCommentIndex(null)
-                                }}
-                                >
-                                  <IoSend />
-                                </button>
-                              </div>
-                            </form>
-                          )}
-                          {showReplies === index &&
-                            chat.replies &&
-                            chat.replies.map((reply, replyIdx) => {
-                              return (
-                                <div
-                                  key={replyIdx}
-                                  className="p-1 flex items-start gap-3 w-full mt-2"
-                                >
-                                  <Avatar 
-                                    name={reply.author} 
-                                    className="rounded-full object-cover"
-                                    size="1.5rem"
-                                  />
-                                  <div className="flex flex-col items-start justify-center w-full">
-                                    <p className="text-sm font-inter text-neutral-300  font-medium">
-                                      {reply.author}{" "}
-                                      <span className="font-inter text-xs text-neutral-400 font-normal ml-1">
-                                        {reply.date}
-                                      </span>
-                                    </p>
-                                    <p className="font-inter text-sm font-normal">
-                                      {reply.replyto&&<span className="text-blue-500">{"@"+reply.replyto}</span>} {reply.chat}
-                                    </p>
-                                    <div className="mt-1 flex flex-col justify-center items-start w-full">
-                                      <button
-                                        className="text-xs font-poppins text-info flex items-center gap-1 relative h-6"
-                                        onClick={() =>
-                                          setReplyIndex(
-                                            replyIndex === replyIdx ? null : replyIdx
-                                          )
-                                        }
-                                      >
-                                        <AnimatePresence mode="wait" initial={false}>
-                                          {replyIndex === replyIdx ? (
-                                            <motion.span
-                                              key="cancel"
-                                              initial={{ opacity: 0, y: -5 }}
-                                              animate={{ opacity: 1, y: 0 }}
-                                              exit={{ opacity: 0, y: 5 }}
-                                              transition={{ duration: 0.25 }}
-                                              className="flex items-center gap-1 "
-                                            >
-                                              <MdCancel /> Cancel
-                                            </motion.span>
-                                          ) : (
-                                            <motion.span
-                                              key="reply"
-                                              initial={{ opacity: 0, y: -5 }}
-                                              animate={{ opacity: 1, y: 0 }}
-                                              exit={{ opacity: 0, y: 5 }}
-                                              transition={{ duration: 0.25 }}
-                                              className="flex items-center gap-1 "
-                                            >
-                                              <FaReply /> Reply
-                                            </motion.span>
-                                          )}
-                                        </AnimatePresence>
-                                      </button>
-                                      {replyIndex === replyIdx && (
-                                        <form action="" className="w-full mt-1">
-                                          <div className="join w-full">
-                                            <input
-                                              type="text"
-                                              className="input join-item w-full"
-                                              placeholder="Type your comment here"
-                                              value={usercomment[reply.id]||""}
-                                              onChange={(e)=>setUsercomment({...usercomment,[reply.id]:e.target.value})}
-                                            />
-                                            <button className="btn join-item bg-white text-black"
-                                            onClick={(e)=>{
-                                              e.preventDefault();
-                                              newComment(usercomment[reply.id],chat.id,reply.author)
-                                              setUsercomment({...usercomment,[reply.id]:""})
-                                              setReplyIndex(null)
-                                            }}
-                                            >
-                                              <IoSend />
-                                            </button>
-                                          </div>
-                                        </form>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                      </div>
-                    </div>
-                    );
-                  })}
-                </div>
-                <form
-                  action=""
-                  className="w-full p-2 border-t border-base-content/10 flex gap-3 justify-center"
-                >
-                  <div className="join w-full">
-                    <input
-                      type="text"
-                      className="input join-item w-full "
-                      placeholder="Type your comment here"
-                      value={usercomment.null}
-                      onChange={(e) => setUsercomment({...usercomment,null:e.target.value })}
-                    />
-                    <button className="btn join-item bg-white text-black"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        newComment(usercomment.null,null,null)
-                        setUsercomment({...usercomment,null:""})
-                      }}
-                    >
-                      <IoSend />
-                    </button>
-                  </div>
-                </form>
-              </div>
+        <div className="p-3 border-b border-base-content/10">
+          <p className="font-poppins text-sm font-semibold">Comments()</p>
+        </div>
+        <CommentSection
+          comments={comments}
+          newComment={newComment}
+          variant="grow"
+        />
+      </div>
     </div>
   );
 }
-
 export default PlayerStock;

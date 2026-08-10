@@ -119,7 +119,7 @@ function UpcomingEventCard({ title, team1, team2,  image1, image2, matchId,statu
         </div>
       </dialog>
       <div className="w-full flex justify-center items-center mt-2">
-        <p>{status}</p>
+        <p className="font-poppins font-semibold text-sm">{status}</p>
       </div>
     </div>
   );

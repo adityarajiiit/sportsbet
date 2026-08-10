@@ -242,8 +242,8 @@ export default function Home() {
             happenings,exclusive content,and behind the scene insights.
           </p>
           <div className="join w-11/12 sm:w-lg lg:w-xl flex justify-center mt-6">
-            <input className="input join-item rounded-l-full h-16 w-full focus:outline-0 px-4" placeholder="Write your email" />
-            <button className="btn join-item rounded-r-full h-16 bg-white text-base-300">Subscribe</button>
+            <input className="input join-item rounded-l-full h-16 w-full focus:outline-0 px-4 font-goldman" placeholder="Write your email" />
+            <button className="btn join-item rounded-r-full h-16 bg-white text-base-300 font-goldman font-semibold">Subscribe</button>
           </div>
         </div>
       </div>

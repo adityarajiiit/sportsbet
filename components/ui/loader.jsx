@@ -179,7 +179,7 @@ export const LoaderFive = ({
 }) => {
   return (
     <div
-      className="font-goldman text-4xl font-bold [--shadow-color:var(--color-neutral-400)] dark:[--shadow-color:var(--color-neutral-100)]">
+      className="font-goldman text-xl md:text-3xl font-bold [--shadow-color:var(--color-neutral-400)] dark:[--shadow-color:var(--color-neutral-100)]">
       {text.split("").map((char, i) => (
         <motion.span
           key={i}

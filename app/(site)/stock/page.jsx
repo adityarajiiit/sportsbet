@@ -5,32 +5,35 @@ import { FaUserNinja } from "react-icons/fa";
 import { useState } from "react";
 import Sidebar from "@/app/components/StockComponents/sidebar";
 import dummy from "@/public/mma.jpg";
-import { IoSend } from "react-icons/io5";
-import Image from "next/image";
 import { IoSearch } from "react-icons/io5";
 import { useSelectedStock } from "@/app/store/useSelectedStock.jsx";
 import NoSelected from "@/app/components/StockComponents/NoSelected";
 import PlayerStock from "@/app/components/StockComponents/playerStock";
-import { FaReply } from "react-icons/fa";
-import { MdCancel } from "react-icons/md";
-import { motion, AnimatePresence } from "motion/react";
-import { FaCommentDots } from "react-icons/fa";
 import TeamStock from "@/app/components/StockComponents/TeamStock";
 import axios from "axios"
 import {useEffect} from "react"
+import Loading from "@/app/loading";
+import NoDataState from "@/components/ui/NoDataState";
 function Stocks() {
   const { selectedPlayer, selectedTeam } = useSelectedStock();
   const [searchPlayer, setSearchPlayer] = useState([])
   const [searchTeam, setSearchTeam] = useState([])
-  const [CommentIndex, setCommentIndex] = useState(null);
-  const [showReplies, setShowReplies] = useState(null);
-  const [replyIndex, setReplyIndex] = useState(null);
-  const selectedEntity = selectedPlayer || selectedTeam;
+  const [searchQuery, setSearchQuery] = useState("")
   const [teams,setTeams] = useState([])
   const [players,setPlayers] = useState([])
+  const [isLoading,setIsLoading] = useState(true)
   useEffect(()=>{
-    getPlayers()
-    getTeams()
+    const loadInitialData=async()=>{
+      try{
+        await Promise.allSettled([
+          getPlayers(),
+          getTeams(),
+        ])
+      }finally{
+        setIsLoading(false)
+      }
+    }
+    loadInitialData()
   },[])
   const [category, setcategory] = useState("Player");
   
@@ -134,6 +137,26 @@ setTeams(teams)
     console.log(response.data)
     console.log(players,teams)
   }
+
+  const visiblePlayers = searchQuery.length>3 ? searchPlayer : players
+  const visibleTeams = searchQuery.length>3 ? searchTeam : teams
+
+  if(isLoading){
+    return <Loading />
+  }
+
+  if(searchQuery.length>3 && visiblePlayers.length===0 && visibleTeams.length===0){
+    return (
+      <div className="pt-20 p-4 min-h-screen">
+        <NoDataState
+          title="No search results"
+          description="We could not find any players or teams for that search. Try a shorter keyword or check back once the market updates."
+          className="min-h-[28rem] flex items-center justify-center"
+        />
+      </div>
+    )
+  }
+
   return (
     <div className="pt-20 p-4 min-h-screen ">
       <div className="flex flex-col md:flex-row justify-between md:items-center gap-2 mb-4">
@@ -161,6 +184,7 @@ setTeams(teams)
             type="search"
             className="grow placeholder:text-white"
             onChange={(e)=>{
+              setSearchQuery(e.target.value)
               if(e.target.value.length>3){
                 getSearchResults(e.target.value)
               }
@@ -176,8 +200,7 @@ setTeams(teams)
         </label>
       </div>
       <div className="flex h-[calc(100vh-13rem)] overflow-hidden gap-4">
-        <Sidebar players={
-          searchPlayer.length>0?searchPlayer:players} category={category} teams={searchTeam.length>0?searchTeam:teams} />
+        <Sidebar players={visiblePlayers} category={category} teams={visibleTeams} />
         <div className="w-full h-full">
           <div className={category === "Player" ? "block h-full" : "hidden"}>
             {selectedPlayer ? (
