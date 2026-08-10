@@ -18,8 +18,10 @@ import { FaCommentDots } from "react-icons/fa";
 import TeamStock from "@/app/components/StockComponents/TeamStock";
 import axios from "axios"
 import {useEffect} from "react"
+import {useAiContext} from "@/app/store/useAiContext"
 function Stocks() {
   const { selectedPlayer, selectedTeam } = useSelectedStock();
+  const {setStockContext,clearContext}=useAiContext()
   const [searchPlayer, setSearchPlayer] = useState([])
   const [searchTeam, setSearchTeam] = useState([])
   const [CommentIndex, setCommentIndex] = useState(null);
@@ -32,6 +34,28 @@ function Stocks() {
     getPlayers()
     getTeams()
   },[])
+  useEffect(()=>{
+    const entity=selectedPlayer||selectedTeam
+    if(entity){
+      setStockContext(
+        entity.stock?.[0]?.id||entity.id,
+        {
+          name:entity.name,
+          price:entity.price,
+          marketCap:entity.marketCapital,
+          priceChange:entity.PriceChange,
+          role:entity.role||null,
+          teamname:entity.teamname||null,
+          career:entity.career||null,
+          prevmatch:entity.prevmatch||null,
+          results:entity.results||null,
+        },
+        entity.stock||[]
+      )
+    }
+    return()=>{clearContext()}
+  },[selectedPlayer,selectedTeam])
+
   const [category, setcategory] = useState("Player");
   
   const getPlayers=async()=>{

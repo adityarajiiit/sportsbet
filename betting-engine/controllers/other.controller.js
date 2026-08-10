@@ -9,6 +9,9 @@ export const allLiveMatches=async(req,res)=>{
             where:{
                 matchState:"Live"
             },
+            orderBy:{
+                start:'asc'
+            },
             skip,
             take:limit
         })
@@ -30,6 +33,9 @@ export const allUpcomingMatches=async(req,res)=>{
         const matches=await prisma.match.findMany({
             where:{
                 matchState:"Upcoming"
+            },
+            orderBy:{
+                start:'asc'
             },
             skip,
             take:limit
@@ -53,6 +59,9 @@ export const allRecentMatches=async(req,res)=>{
         const matches=await prisma.match.findMany({
             where:{
                 matchState:"Recent"
+            },
+            orderBy:{
+                start:'desc'
             },
             skip,
             take:limit

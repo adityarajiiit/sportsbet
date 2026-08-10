@@ -35,6 +35,14 @@ async def fetchMatch(matchId:str)->dict|None:
             match["_teams"]=teams
         return match
 
+async def lookupMatchByCricbuzzId(cricbuzzId:int)->str|None:
+    db=getDb()
+    try:
+        match=await db[COLL_MATCH].find_one({"cricbuzzmatchId":int(cricbuzzId)})
+        return str(match["_id"]) if match else None
+    except Exception:
+        return None
+
 async def fetchMatchH2H(teamId1:str,teamId2:str)->list[dict]:
     db=getDb()
     res=db[COLL_MATCH].find({

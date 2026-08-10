@@ -13,7 +13,7 @@ import { useThemeStore } from "../store/useThemestore";
 import logo from "@/public/logo.png";
 import { MdAddCard } from "react-icons/md";
 import { BackgroundGradient } from "@/components/ui/backgroundgradient";
-import { FaBell } from "react-icons/fa";
+import AlertsPanel from "./ai/AlertsPanel";
 import { FaUserLock } from "react-icons/fa";
 import axios from "axios";
 import { useUserStore } from "../store/useUserStore";
@@ -114,12 +114,7 @@ function Navbar() {
         </BackgroundGradient>
       </div>
       <div className="hidden lg:flex items-center gap-2">
-        <Link
-          href="/"
-          className="btn rounded-full p-2.5 border-base-content/20"
-        >
-          <FaBell className="size-4.5" />
-        </Link>
+        <AlertsPanel />
         <Link
           href="/admin"
           className="btn rounded-full p-2.5 border-base-content/20"
@@ -143,12 +138,7 @@ function Navbar() {
         )}
       </div>
       <div className="lg:hidden flex items-center gap-2">
-        <Link
-          href="/"
-          className="btn rounded-full p-2.5 border-base-content/20"
-        >
-          <FaBell className="size-4.5" />
-        </Link>
+        <AlertsPanel />
         <Link
           href="/admin"
           className="btn rounded-full p-2.5 border-base-content/20"

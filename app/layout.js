@@ -14,6 +14,7 @@ import { SessionProvider } from "next-auth/react";
 import { useThemeStore } from "./store/useThemestore";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
+import Chat from "./components/ai/chat"
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -49,7 +50,7 @@ export default function RootLayout({ children }) {
   const hydrateTheme = useThemeStore((state) => state.hydrateTheme);
   const theme = useThemeStore((state) => state.theme);
   useEffect(() => {
-    hydrateTheme(); 
+    hydrateTheme();
   }, [hydrateTheme]);
 
   return (
@@ -61,6 +62,7 @@ export default function RootLayout({ children }) {
           <Toaster position="top-right" richColors closeButton duration={4000} />
           <Navbar />
           <Provider>{children}</Provider>
+          <Chat/>
         </SessionProvider>
       </body>
     </html>

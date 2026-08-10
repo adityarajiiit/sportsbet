@@ -20,6 +20,11 @@ class AgentState(TypedDict, total=False):
     messages:list[Any]
     cost_usd:float
     tokens_used:dict[str,int]
+    ctx_live_matches:list[Any]
+    ctx_upcoming_matches:list[Any]
+    ctx_current_odds:dict[str,Any]
+    ctx_stock_data:dict[str,Any]
+    ctx_price_history:list[Any]
 
 def makeDefaultState(overrides=None):
     state={
@@ -42,6 +47,11 @@ def makeDefaultState(overrides=None):
         "messages":[],
         "cost_usd":0.0,
         "tokens_used":{"input":0,"output":0},
+        "ctx_live_matches":[],
+        "ctx_upcoming_matches":[],
+        "ctx_current_odds":{},
+        "ctx_stock_data":{},
+        "ctx_price_history":[],
     }
     if overrides:
         state.update(overrides)

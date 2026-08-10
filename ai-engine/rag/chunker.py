@@ -1,6 +1,6 @@
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-def create_chunker(chunk_size:int=500,overlap:int=100):
+def create_chunker(chunk_size:int=800,overlap:int=200):
     return RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=overlap,

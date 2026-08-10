@@ -10,6 +10,7 @@ import OddsHistoryGraph from "@/app/components/EventComponents/OddsHistoryGraph"
 import { IoSend } from "react-icons/io5";
 import { HoverBorderGradient } from "@/components/ui/bg-gradient";
 import { useSelectedEvent } from "@/app/store/useSelectedEvent";
+import { useAiContext } from "@/app/store/useAiContext";
 import { Label, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts";
 import { FaReply } from "react-icons/fa";
 import { MdCancel } from "react-icons/md";
@@ -34,6 +35,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart";
+import MatchInsight from "@/app/components/ai/MatchInsight"
+import BetAdvisor from "@/app/components/ai/BetAdvisor";
 function EventScore({params}) {
   params=use(params)
   const [buyamount, setBuyAmount] = useState(0);
@@ -59,6 +62,7 @@ function EventScore({params}) {
   const [matchbets,setMatchbets]=useState([])
   const session=useSession()
   const {refreshUser,walletBalance}=useUserStore()
+  const {setMatchContext,clearContext}=useAiContext()
 
   useEffect(()=>{
     fetchscore()
@@ -149,6 +153,27 @@ socket.on('betting-update',(data)=>{
       getMatchbets()
     }
   },[score.matchId])
+  useEffect(()=>{
+    if(score.matchId){
+      setMatchContext(
+        score.matchId,
+        {
+          team1:score.team1,
+          team2:score.team2,
+          score1:score.score1,
+          score2:score.score2,
+          status:score.status,
+          matchState:score.matchstate,
+          stadium:score.stadium,
+          series:score.series,
+        },
+        matchbets.map(b=>({teamname:b.name,odds:b.odds,amount:b.amount})),
+        {score1:score.score1,score2:score.score2,status:score.status}
+      )
+    }
+    return()=>{clearContext()}
+  },[score,matchbets])
+
   const getmatchId=async()=>{
     const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getmatchid`,{
       params:{
@@ -815,7 +840,6 @@ const winpercentage=[{
             team1Name={score.team1} 
             team2Name={score.team2} 
         />
-
         <div className="h-full w-full border border-base-content/10 rounded-xl md:col-span-2">
           <div className="p-3 border-b border-base-content/10">
             <p className="font-poppins text-sm font-semibold">Comments()</p>
@@ -1034,6 +1058,13 @@ const winpercentage=[{
           </form>
         </div>
       </div>
+      {score.matchId&&(
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+          <MatchInsight matchId={score.matchId} />
+          <BetAdvisor matchId={score.matchId} />
+        </div>
+      )}
+      
     </div>
   );
 }

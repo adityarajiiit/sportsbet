@@ -15,6 +15,21 @@ You help users with:
 CURRENT PAGE CONTEXT:
 {page_context}
 
+LIVE MATCHES RIGHT NOW:
+{live_matches}
+
+UPCOMING MATCHES:
+{upcoming_matches}
+
+CURRENT MATCH ON PAGE (if user is viewing a match):
+{current_match}
+
+CURRENT ODDS ON PAGE (if available):
+{current_odds}
+
+CURRENT STOCK ON PAGE (if user is viewing a stock):
+{stock_data}
+
 USER PROFILE:
 {user_context}
 
@@ -23,11 +38,14 @@ RELEVANT KNOWLEDGE:
 
 Guidelines:
 - Be concise but thorough
+- If the user is viewing a match, proactively reference that match by name with actual scores and odds
+- If the user is viewing a stock, reference its actual price and trend
+- When giving betting advice, always mention risk and cite real odds
+- For stock questions, reference actual price history and trends
+- Reference specific data from the context when available — never be generic
 - Use cricket terminology naturally
-- When giving betting advice, always mention risk
-- Reference specific data when available
-- Be enthusiastic about cricket!
 - Format responses with markdown when helpful
+- Be enthusiastic about cricket!
 """
 async def chatAssistant(state):
     query=state.get("query","")
@@ -50,6 +68,14 @@ async def chatAssistant(state):
     try:
         result=await chain.ainvoke({
             "page_context":json.dumps(ctx,default=str),
+            "live_matches":json.dumps(state.get("ctx_live_matches",[])[:5],default=str)[:1500],
+            "upcoming_matches":json.dumps(state.get("ctx_upcoming_matches",[])[:5],default=str)[:1500],
+            "current_match":json.dumps(state.get("match_data",{}),default=str)[:2000],
+            "current_odds":json.dumps(state.get("ctx_current_odds",{}),default=str)[:1000],
+            "stock_data":json.dumps({
+                "stock":state.get("ctx_stock_data",{}),
+                "recentPrices":state.get("ctx_price_history",[])[-10:]
+            },default=str)[:1000],
             "user_context":json.dumps({
                 "profile":state.get("user_profile",{}),
                 "wallet":state.get("user_wallet",{}),
@@ -96,6 +122,14 @@ async def chatAssistantStream(state):
     fullResponse=""
     async for chunk in chain.astream({
         "page_context":json.dumps(ctx,default=str),
+        "live_matches":json.dumps(state.get("ctx_live_matches",[])[:5],default=str)[:1500],
+        "upcoming_matches":json.dumps(state.get("ctx_upcoming_matches",[])[:5],default=str)[:1500],
+        "current_match":json.dumps(state.get("match_data",{}),default=str)[:2000],
+        "current_odds":json.dumps(state.get("ctx_current_odds",{}),default=str)[:1000],
+        "stock_data":json.dumps({
+            "stock":state.get("ctx_stock_data",{}),
+            "recentPrices":state.get("ctx_price_history",[])[-10:]
+        },default=str)[:1000],
         "user_context":json.dumps({
             "profile":state.get("user_profile",{}),
             "wallet":state.get("user_wallet",{}),

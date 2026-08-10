@@ -16,6 +16,7 @@ import bar from "@/public/bar.jpg";
 import volume from "@/public/volume.png";
 import PlayerStats from "./Stats/PlayerStats";
 import PriceHistoryGraph from "./PriceHistoryGraph";
+import StockPredict from "@/app/components/ai/StockPredict";
 import io from "socket.io-client";
 import Avatar from 'react-avatar'
 import axios from 'axios'
@@ -737,6 +738,7 @@ function PlayerStock({ player }) {
         <PriceHistoryGraph stockId={player.stock?.[0]?.id} />
         <PlayerStats player={player} />
       </div>
+      <StockPredict stockId={player.stock?.[0]?.id}/>
       <div className="h-full w-full border border-base-content/10 rounded-xl mt-6 flex flex-col">
                 <div className="p-3 border-b border-base-content/10">
                   <p className="font-poppins text-sm font-semibold">Comments()</p>

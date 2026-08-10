@@ -1,5 +1,6 @@
 from scraper.cricbuzz import scrape_cricbuzz_news
 from scraper.espn import scrape_espn_news
+from scraper.livecricket import scrape_live_cricket
 from rag.ingestion import ingest_document
 from config.constants import INTENT_SMART_ALERT
 import logging
@@ -31,6 +32,24 @@ async def scrape_and_ingest():
         except Exception as e:
             logger.error(f"Scraper error {e}")
 
+async def scrape_live_and_ingest():
+    try:
+        articles=await scrape_live_cricket()
+        for a in articles:
+            url=a.get("url")
+            content=a.get("content")
+            if content and url:
+                await ingest_document(
+                    source="scrape_live_cricket",
+                    url=str(url),
+                    title=str(a.get("title")or" "),
+                    content=str(content),
+                    category="live-cricket",
+                )
+        logger.info(f"Live scraped {len(articles)}")
+    except Exception as e:
+        logger.error(f"Live scraper error {e}")
+
 async def run_smart_alerts():
     agent=getAgent()
     live=await fetchLiveMatches()
@@ -57,6 +76,7 @@ async def startScheduler():
     scheduler.add_job(scrape_and_ingest,"interval",
     minutes=settings.SCRAPE_INTERVAL,id="scrape",next_run_time=datetime.now())
     scheduler.add_job(run_smart_alerts,"interval",minutes=5,id="alerts")
+    scheduler.add_job(scrape_live_and_ingest,"interval",minutes=10,id="live_scrape")
     scheduler.start()
     logger.info("scheduler started")
 

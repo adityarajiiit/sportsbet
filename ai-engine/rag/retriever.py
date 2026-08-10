@@ -1,5 +1,6 @@
 from qdrant_client.models import ScoredPoint,Filter,FieldCondition,MatchValue
 from rag.embedder import embed_query
+from rag.reranker import rerank_chunks
 from services.qdrantclient import getQdrantClient
 from config.constants import QDRANT_COLLECTION
 from typing import Optional
@@ -39,7 +40,7 @@ async def hybrid_search(
             collection_name=QDRANT_COLLECTION,
             query=query_vector,
             query_filter=search_filter,
-            limit=top_k*2,
+            limit=top_k*3,
             score_threshold=score_threshold
         )
         results:list[ScoredPoint] = response.points
@@ -55,11 +56,13 @@ async def hybrid_search(
             "category":(pt.payload or {}).get("category","")
         }
         for pt in results
-    ][:top_k]
+    ][:top_k*3]
 
 async def retrieveChunks(query,topK=5,category=None):
     hits=await hybrid_search(query,top_k=topK,category=category)
+    if len(hits)>topK:
+        hits=await rerank_chunks(query,hits,top_k=topK)
     return[
-        f"[{h['source']} | {h['title']} | score:{h['score']:.2f}]\n{h['text']}"
+        f"[{h['source']} | {h['title']} | score:{h.get('rerank_score',h['score']):.2f}]\n{h['text']}"
         for h in hits
     ]

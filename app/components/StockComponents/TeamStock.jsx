@@ -22,6 +22,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { FaReply } from "react-icons/fa";
 import { MdCancel } from "react-icons/md";
 import PriceHistoryGraph from "./PriceHistoryGraph";
+import StockPredict from "@/app/components/ai/StockPredict";
 import axios from 'axios'
 import { useUserStore } from "@/app/store/useUserStore.jsx";
 import { toast } from "sonner";
@@ -685,6 +686,7 @@ function TeamStock({ team }) {
         <PriceHistoryGraph stockId={team.stock?.[0]?.id} />
         <TeamStats team={team} />
       </div>
+      <StockPredict stockId={team.stock?.[0]?.id}/>
       <div className="h-full w-full border border-base-content/10 rounded-xl mt-6 flex flex-col">
                 <div className="p-3 border-b border-base-content/10">
                   <p className="font-poppins text-sm font-semibold">Comments()</p>
