@@ -9,12 +9,6 @@ import { HoverBorderGradient } from "@/components/ui/bg-gradient";
 import { FaHourglassStart, FaHourglassEnd } from "react-icons/fa";
 import { useSelectedEvent } from "@/app/store/useSelectedEvent";
 import { useAiContext } from "@/app/store/useAiContext";
-import { Label, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts";
-import { FaReply } from "react-icons/fa";
-import { MdCancel } from "react-icons/md";
-import { FaHourglassStart } from "react-icons/fa";
-import { FaHourglassEnd } from "react-icons/fa";
-import { motion, AnimatePresence } from "motion/react";
 import { useSession } from "next-auth/react";
 import { io } from "socket.io-client";
 import axios from "axios";
@@ -25,18 +19,14 @@ import BettingControls from "@/components/blocks/BetComponents/BettingControls";
 import WinPredictionChart from "@/app/(site)/event/score/components/matrix.jsx";
 import { TbShirtSport } from "react-icons/tb";
 import Loading from "@/app/loading";
+import MatchInsight from "@/app/components/ai/MatchInsight";
+import BetAdvisor from "@/app/components/ai/BetAdvisor";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
 function EventScore({ params }) {
   params = use(params);
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import MatchInsight from "@/app/components/ai/MatchInsight"
-import BetAdvisor from "@/app/components/ai/BetAdvisor";
-function EventScore({params}) {
-  params=use(params)
+
   const [buyamount, setBuyAmount] = useState(0);
   const [buyamount2, setBuyAmount2] = useState(0);
   const [ExitPrice, setExitPrice] = useState(0);
@@ -49,55 +39,25 @@ function EventScore({params}) {
   const [socket, setSocket] = useState(null);
   const [matchbets, setMatchbets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
   const session = useSession();
   const { refreshUser, walletBalance } = useUserStore();
+  const { selectedEvent } = useSelectedEvent();
+  const { setMatchContext, clearContext } = useAiContext();
+  const event = selectedEvent;
 
   useEffect(() => {
-    const socket = io(
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
-    );
+    const socket = io(API_URL);
     setSocket(socket);
+
     socket.on("connect", () => {
       socket.emit("join-room", params.matchid);
     });
+
     socket.on("match-update", (data) => {
       const matchinfo = data?.data?.matchInfo;
       const matchscore = data?.data?.matchScore;
       if (matchinfo?.matchId === params.matchid) {
-  const[isstoplosschecked,setIsstoplosschecked]=useState(false)
-  const[istakeprofitchecked,setIstakeprofitchecked]=useState(false)
-  const [CommentIndex, setCommentIndex] = useState(null);
-  const [showReplies, setShowReplies] = useState(null);
-  const [replyIndex, setReplyIndex] = useState(null);
-  const { selectedEvent } = useSelectedEvent();
-  const [matchid,setMatchid]=useState("")
-  const [usercomment,setUsercomment]=useState({
-    null:""
-  })
-  const event = selectedEvent;
-  const [comments,setComments]=useState([
-    
-  ])
-  const [score,setScore]=useState({})
-  const [socket,setSocket]=useState(null)
-  const [matchbets,setMatchbets]=useState([])
-  const session=useSession()
-  const {refreshUser,walletBalance}=useUserStore()
-  const {setMatchContext,clearContext}=useAiContext()
-
-  useEffect(()=>{
-    fetchscore()
-    
-    const socket=io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000")
-    setSocket(socket)
-    socket.on("connect",()=>{
-      socket.emit("join-room",params.matchid)
-    })
-    socket.on("match-update",(data)=>{
-      console.log(data)
-      const matchinfo=data?.data?.matchInfo
-      const matchscore=data?.data?.matchScore
-      if(matchinfo?.matchId===params.matchid){
         setScore({
           start: new Date(matchinfo.startDate).toLocaleString(),
           end: new Date(matchinfo.endDate).toLocaleString(),
@@ -119,6 +79,7 @@ function EventScore({params}) {
         });
       }
     });
+
     socket.on("comment-added", (data) => {
       const receivedcomment = {
         author: data.name,
@@ -149,6 +110,7 @@ function EventScore({params}) {
         });
       }
     });
+
     socket.on("betting-update", (data) => {
       const oddsandamount = data.map((outcome) => ({
         id: outcome.teamId,
@@ -186,110 +148,44 @@ function EventScore({params}) {
     };
   }, [params.matchid]);
 
+  useEffect(() => {
+    if (score.matchId) {
+      setMatchContext(
+        score.matchId,
+        {
+          team1: score.team1,
+          team2: score.team2,
+          score1: score.score1,
+          score2: score.score2,
+          status: score.status,
+          matchState: score.matchstate,
+          stadium: score.stadium,
+          series: score.series,
+        },
+        matchbets.map((b) => ({
+          teamname: b.name,
+          odds: b.odds,
+          amount: b.amount,
+        })),
+        { score1: score.score1, score2: score.score2, status: score.status },
+      );
+    }
+    return () => clearContext();
+  }, [score, matchbets]);
+
   const getmatchId = async () => {
-    const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getmatchid`,
-      { params: { cricbuzzmatchId: params.matchid } },
-    );
+    const response = await axios.get(`${API_URL}/api/others/getmatchid`, {
+      params: { cricbuzzmatchId: params.matchid },
+    });
     setMatchid(response.data.matchId);
+    return response.data.matchId;
   };
 
   const fetchscore = async () => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/match/${params.matchid}`,
+      `${API_URL}/api/others/match/${params.matchid}`,
     );
     const data = response.data;
-    })
-  socket.on("comment-added",(data)=>{
-
-  const receivedcomment={
-    author:data.name,
-    id:data.id,
-    date:new Date(data.createdAt).toLocaleString(),
-    chat:data.message,
-    replies:data.replies,
-    replyto:data.replyto||null
-  }
-  if(data.parentcommentId===null){
-    setComments(prevComments=>[...prevComments,receivedcomment])
-  }
-  else{
-    setComments(prevComments=>{
-      const updatedComments=[...prevComments]
-      const index=updatedComments.findIndex(comment=>comment.id===data.parentcommentId)
-      if(index!==-1){
-        updatedComments[index]={
-          ...updatedComments[index],
-          replies:[...(updatedComments[index].replies||[]),receivedcomment]
-        }
-      }
-      return updatedComments
-    });
-  }
-})
-socket.on('betting-update',(data)=>{
-  console.log(data)
-  const oddsandamount=data.map((outcome)=>{
-    return{
-      id:outcome.teamId,
-      odds:outcome.odds,
-      amount:outcome.amount,
-      name:outcome.name,
-      matchbetId:outcome.matchbetId,
-      matchoutcomesId:outcome.matchoutcomesId
-    }
-  })
-  setMatchbets(oddsandamount)
-})
-    return()=>{
-      socket.emit("leave-room",params.matchid)
-      socket.off("connect")
-      socket.off("match-update")
-      socket.off("comment-added")
-      socket.off("betting-update")
-      socket.disconnect()
-    }
-  },[])
-  useEffect(()=>{
-    if(score.matchId){
-      getmatchId()
-      getComments()
-      getMatchbets()
-    }
-  },[score.matchId])
-  useEffect(()=>{
-    if(score.matchId){
-      setMatchContext(
-        score.matchId,
-        {
-          team1:score.team1,
-          team2:score.team2,
-          score1:score.score1,
-          score2:score.score2,
-          status:score.status,
-          matchState:score.matchstate,
-          stadium:score.stadium,
-          series:score.series,
-        },
-        matchbets.map(b=>({teamname:b.name,odds:b.odds,amount:b.amount})),
-        {score1:score.score1,score2:score.score2,status:score.status}
-      )
-    }
-    return()=>{clearContext()}
-  },[score,matchbets])
-
-  const getmatchId=async()=>{
-    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getmatchid`,{
-      params:{
-        cricbuzzmatchId:params.matchid
-      }
-    })
-    setMatchid(response.data.matchId)
-  }
-  const fetchscore=async()=>{
-    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/match/${params.matchid}`)
-  
-    const data=response.data
     setScore({
       start: new Date(data.start).toLocaleString(),
       end: new Date(data.end).toLocaleString(),
@@ -314,7 +210,7 @@ socket.on('betting-update',(data)=>{
 
   const getComments = async (matchId) => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/comments/getcomments`,
+      `${API_URL}/api/comments/getcomments`,
       {
         params: {
           pagetype: "match",
@@ -322,7 +218,6 @@ socket.on('betting-update',(data)=>{
           parentcommentId: null,
         },
       },
-      { headers: { "Content-Type": "application/json" } },
     );
     const allcomments = response.data.map((comment) => ({
       author: comment.user.name,
@@ -353,11 +248,9 @@ socket.on('betting-update',(data)=>{
   };
 
   const getMatchbets = async (matchId) => {
-    const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getmatchbets`,
-      { params: { matchId } },
-      { headers: { "Content-Type": "application/json" } },
-    );
+    const response = await axios.get(`${API_URL}/api/others/getmatchbets`, {
+      params: { matchId },
+    });
     const matchbetoutcomes = response.data.matchbetoutcomes;
     const oddsandamount = matchbetoutcomes.map((outcome) => ({
       id: outcome.teamId,
@@ -369,10 +262,6 @@ socket.on('betting-update',(data)=>{
     }));
     setMatchbets(oddsandamount);
   };
-
-  if (isLoading) {
-    return <Loading />;
-  }
 
   const newBet = async (team) => {
     if (!session?.data?.user) {
@@ -397,14 +286,10 @@ socket.on('betting-update',(data)=>{
           : matchbets[1].matchoutcomesId,
     };
     try {
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/bets/newbet`,
-        data,
-        {
-          headers: { "Content-Type": "application/json" },
-          withCredentials: true,
-        },
-      );
+      const response = await axios.post(`${API_URL}/api/bets/newbet`, data, {
+        headers: { "Content-Type": "application/json" },
+        withCredentials: true,
+      });
       if (isstoplosschecked) await setStoploss(response.data.bet.id);
       if (istakeprofitchecked) await setTakeprofit(response.data.bet.id);
       refreshUser();
@@ -420,7 +305,7 @@ socket.on('betting-update',(data)=>{
       return;
     }
     await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,
+      `${API_URL}/api/alerts/newalert`,
       {
         pagetype: "match",
         betId,
@@ -439,7 +324,7 @@ socket.on('betting-update',(data)=>{
       return;
     }
     await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,
+      `${API_URL}/api/alerts/newalert`,
       {
         pagetype: "match",
         betId,
@@ -451,6 +336,10 @@ socket.on('betting-update',(data)=>{
       },
     );
   };
+
+  if (isLoading) {
+    return <Loading />;
+  }
 
   return (
     <div className="p-4 pt-24">
@@ -482,17 +371,17 @@ socket.on('betting-update',(data)=>{
           <Image
             src={ScoreCard}
             alt="score"
-            className="lg:w-5xl h-[16rem] sm:h-[20rem] absolute top-0 object-center"
+            className="lg:w-5xl h-[19rem] sm:h-[20rem] absolute top-0 object-center"
             width={1000}
             height={1000}
           />
-          <div className="flex flex-col sm:p-6 p-1 pt-7 sm:pt-12 w-full md:max-w-5xl gap-2 justify-between h-[14rem] sm:h-[18rem] z-1">
+          <div className="flex flex-col sm:p-6 p-1 pt-7 sm:pt-12 w-full md:max-w-5xl gap-2 justify-between h-[17rem] sm:h-[18rem] z-1">
             <div className="flex justify-between gap-4 items-center">
               <HoverBorderGradient className="bg-base-100 rounded-full p-1 px-4 w-full">
                 <p className="flex items-center gap-2 text-xs font-medium font-poppins text-center w-full">
                   <span className="flex items-center gap-1.5 font-semibold text-info">
                     <TbShirtSport className="size-3.5" />
-                    Match Name :
+                    Match :
                   </span>
                   <span className="font-bold">{score.series}</span>
                 </p>
@@ -509,8 +398,8 @@ socket.on('betting-update',(data)=>{
             </div>
 
             <div className="flex flex-col gap-2 -mt-1">
-              <div className="flex justify-between items-center gap-2 sm:gap-4">
-                <div className="flex items-center justify-between gap-4 w-full">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-4">
+                <div className="flex flex-row items-center justify-between gap-4 w-full">
                   <div className="flex gap-3 items-center justify-center">
                     <Image
                       src={cricket}
@@ -521,23 +410,23 @@ socket.on('betting-update',(data)=>{
                       {score.team1}
                     </span>
                   </div>
-                  <div className="p-1 px-1.5 sm:p-2 sm:px-3.5 backdrop-blur-lg rounded-xl flex items-center justify-center bg-[rgba(67,67,67,0.1)] shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]">
+                  <div className="p-1 px-1.5 sm:p-2 sm:px-3.5 backdrop-blur-lg rounded-xl flex items-center justify-center group bg-[rgba(67,67,67,0.1)] shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]">
                     <span className="text-xs sm:text-xl lg:text-2xl font-black font-inter line-clamp-1">
                       {score.score1}
                     </span>
                   </div>
                 </div>
-                <div className="flex flex-col justify-center items-center font-bold text-3xl font-goldman">
+                <div className="hidden sm:block font-bold text-3xl font-goldman">
                   :
                 </div>
                 <div className="flex items-center justify-between gap-4 w-full">
-                  <div className="p-1 px-1.5 sm:p-2 sm:px-3.5 backdrop-blur-lg rounded-xl flex items-center justify-center bg-[rgba(67,67,67,0.1)] shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]">
+                  <div className="hidden p-1 px-1.5 sm:p-2 sm:px-3.5 backdrop-blur-lg rounded-xl sm:flex items-center justify-center group bg-[rgba(67,67,67,0.1)] shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]">
                     <span className="text-xs sm:text-xl lg:text-2xl font-black font-inter line-clamp-1">
                       {score.score2}
                     </span>
                   </div>
                   <div className="flex gap-3 items-center justify-center">
-                    <span className="font-bold text-sm sm:text-xl font-inter">
+                    <span className="hidden sm:block font-bold text-sm sm:text-xl font-inter">
                       {score.team2}
                     </span>
                     <Image
@@ -545,6 +434,14 @@ socket.on('betting-update',(data)=>{
                       alt="team"
                       className="size-8 sm:size-12 rounded-full"
                     />
+                    <span className="sm:hidden font-bold text-sm sm:text-xl font-inter">
+                      {score.team2}
+                    </span>
+                  </div>
+                  <div className="sm:hidden p-1 px-1.5 sm:p-2 sm:px-3.5 backdrop-blur-lg rounded-xl flex items-center justify-center group bg-[rgba(67,67,67,0.1)] shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]">
+                    <span className="text-xs sm:text-xl lg:text-2xl font-black font-inter line-clamp-1">
+                      {score.score2}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -615,13 +512,12 @@ socket.on('betting-update',(data)=>{
           />
         </div>
       </div>
-      {score.matchId&&(
+      {score.matchId && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <MatchInsight matchId={score.matchId} />
           <BetAdvisor matchId={score.matchId} />
         </div>
       )}
-      
     </div>
   );
 }

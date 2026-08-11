@@ -114,7 +114,6 @@ function Navbar() {
         ) : (
           <Link
             href="/login"
-            onClick={() => signIn()}
             className="px-6 py-3 rounded-full bg-[#b6e24e] font-bold text-base-100 tracking-widest uppercase transform hover:scale-102 hover:bg-[#FFB22C] transition-all duration-200 font-inter text-sm "
           >
             Log In
@@ -183,19 +182,12 @@ function Navbar() {
               <Link
                 className="flex justify-start items-center p-2 gap-1  font-medium font-poppins text-sm hover:bg-base-300 rounded-xs"
                 href="/login"
-                onClick={() => signIn()}
               >
                 <TbLogout className="stroke-2 size-4" />
                 Log In
               </Link>
             )}
           </ul>
-        </div>
-        <div className="flex justify-center items-end pr-2 flex-col font-poppins font-semibold text-xs clip-custom w-36 h-16 bg-info">
-          <span className="text-base-100 text-xs">Balance</span>
-          <span className="text-info-content text-lg sm:text-xl font-bold">
-            ₹{walletBalance.toFixed(2)}
-          </span>
         </div>
       </div>
     </header>

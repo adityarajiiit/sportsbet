@@ -264,7 +264,7 @@ function LiveEvent() {
 
   return (
     <div className="w-full h-full py-4">
-      <div className="w-full flex flex-wrap items-center justify-between px-4 mt-4">
+      <div className="w-full flex flex-wrap items-center justify-between px-4 mt-4 gap-2">
         <div>
           <h1 className=" text-3xl font-inter font-black uppercase">
             Current <span className="text-warning">Events</span>
@@ -289,24 +289,21 @@ function LiveEvent() {
         </div>
       </div>
       <div className="flex justify-start items-start px-4 mt-3 w-full gap-2 h-full">
-        <div className="w-20 md:w-44">
-          <div className="p-2 grid grid-cols-1 auto-rows-auto place-items-start w-fit bg-base-200 place-content-start rounded-md h-[40rem] border border-base-content/20">
-            {sportEvents.map((sport) => {
-              return (
-                <div
-                  role="tab"
-                  className={`flex justify-start items-center gap-1  w-full tab rounded-sm ${filter == sport.title ? "bg-sky-700 tab-active" : ""} tabs-lg`}
-                  key={sport.title}
-                  onClick={() => setFilter(sport.title)}
-                >
-                  {sport.icon}
-                  <p className="text-base font-inter hidden md:block">
-                    {sport.title}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
+        <div className="w-20 md:w-44 p-2 grid grid-cols-1 auto-rows-auto place-items-start bg-base-200 place-content-start rounded-md h-[40rem] border border-base-content/20">
+          {sportEvents.map((sport) => {
+            return (
+              <div
+                className={`flex justify-center md:justify-start items-center gap-1  w-full tab rounded-sm h-12 p-2.5 ${filter == sport.title ? "bg-sky-700 text-foreground" : ""}`}
+                key={sport.title}
+                onClick={() => setFilter(sport.title)}
+              >
+                {sport.icon}
+                <p className="text-base font-inter hidden md:block">
+                  {sport.title}
+                </p>
+              </div>
+            );
+          })}
         </div>
         {allmatches.length > 0 ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-2  w-full h-[40rem] overflow-y-auto p-2 bg-neutral-900 rounded-md border border-base-content/20">

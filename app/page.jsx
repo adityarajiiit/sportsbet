@@ -111,16 +111,16 @@ export default function Home() {
             ) : (
               <Link href="/api/auth/signin">
                 <HoverBorderGradient
-                  containerClassName="rounded-full"
+                  containerClassName="rounded-full w-32 sm:w-40"
                   as="button"
-                  className=" bg-base-100 text-white  flex items-center justify-center w-40 p-2.5"
+                  className=" bg-base-100 text-white  flex items-center justify-center  p-2.5"
                 >
                   <span className="text-sm font-poppins font-medium ">Explore Now</span>
                 </HoverBorderGradient>
               </Link>
             )}
             <Link href="/event">
-              <button className="flex gap-1 p-2.5 rounded-full bg-warning text-black font-poppins font-medium w-40 justify-center items-center text-sm">
+              <button className="flex gap-1 p-2.5 rounded-full bg-warning text-black font-poppins font-medium w-32 sm:w-40 justify-center items-center text-sm">
                 Start Betting
               </button>
             </Link>

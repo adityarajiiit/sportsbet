@@ -25,7 +25,7 @@ function LiveEventcard({
       <div className="w-full flex justify-between ">
         <h1 className="font-medium font-poppins text-neutral-200 flex gap-2 justify-center items-center text-sm">
           <FaFlag />
-          {title}
+          <span className="line-clamp-1">{title}</span>
         </h1>
         <button
           className="group font-poppins text-xs font-semibold btn btn-sm btn-info"
@@ -34,8 +34,8 @@ function LiveEventcard({
             handleSelectedUser();
           }}
         >
-          View Score
-          <FaArrowCircleRight className="transition-transform duration-200 group-hover:translate-x-1.5" />
+          View
+          <FaArrowCircleRight className="transition-transform duration-200 group-hover:translate-x-1" />
         </button>
       </div>
       <div className="flex flex-col justify-center items-start gap-2 w-full mt-2">
