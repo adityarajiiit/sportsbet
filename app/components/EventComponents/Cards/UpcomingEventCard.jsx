@@ -99,7 +99,7 @@ function UpcomingEventCard({
       </div>
 
       <div className="w-full flex justify-center items-center mt-2">
-        <p className="font-poppins font-semibold text-xs">{status}</p>
+        <span className="font-poppins font-semibold text-xs line-clamp-2">{status}</span>
       </div>
       <button
         className={`btn rounded w-full mt-2 ${notified ? "btn-success" : "btn-warning"}`}

@@ -62,8 +62,8 @@ function LiveEventcard({
           </div>
         </div>
       </div>
-      <div className="w-full flex justify-center items-center mt-2">
-        <p className="font-poppins font-semibold text-sm">{status}</p>
+      <div className="w-full flex justify-center items-center mt-2 text-center">
+        <span className="font-poppins font-semibold text-sm line-clamp-2">{status}</span>
       </div>
     </div>
   );
