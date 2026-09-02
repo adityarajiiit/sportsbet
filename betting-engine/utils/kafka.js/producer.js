@@ -2,9 +2,8 @@ import{Kafka,Partitioners} from "kafkajs"
 import dotenv from "dotenv"
 import fs from "fs"
 import path from "path"
-import { fileURLToPath } from "url"
-import { dirname } from "path"
-import cron from "node-cron"
+import {fileURLToPath} from "url"
+import {dirname} from "path"
 
 const __filename=fileURLToPath(import.meta.url)
 const __dirname=dirname(__filename)
@@ -22,3 +21,15 @@ export const kafka=new Kafka({
 })
 
 export const producer=kafka.producer({createPartitioner:Partitioners.LegacyPartitioner})
+
+let _connected=false
+export const sendKafkaMessage=async(topic,key,value)=>{
+    if(!_connected){
+        await producer.connect()
+        _connected=true
+    }
+    await producer.send({
+        topic,
+        messages:[{key,value:JSON.stringify(value)}]
+    })
+}

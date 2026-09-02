@@ -1,8 +1,6 @@
 import dotenv from 'dotenv'
 dotenv.config({path:'../../.env'})
-import {PrismaClient} from "@prisma/client"
-
-const prisma=new PrismaClient()
+import prisma from '../utils/prisma.js'
 import { delayJob,removeJob } from "../utils/bullmq.js";
 const newReminder=async(req,res)=>{
     try{
@@ -88,9 +86,6 @@ if(!user){
     return res.json({error:"no user"})
 }
 const id=req.params.id
-if(data.status!=="dismissed"){
-    return res.json({error:"not dismissed status"})
-}
 await removeJob(id)
 const reminder=await prisma.reminder.update({
     where:{

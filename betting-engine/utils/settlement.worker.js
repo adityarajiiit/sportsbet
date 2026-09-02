@@ -1,8 +1,6 @@
-import{PrismaClient}from "@prisma/client"
-import{producer}from "./kafka.js/producer.js"
-import{io}from "../index.js"
-
-const prisma=new PrismaClient()
+import prisma from "../utils/prisma.js"
+import {sendKafkaMessage} from "./kafka.js/producer.js"
+import {io} from "../index.js"
 
 export const settleMatchesWorker=async()=>{
     try{
@@ -29,8 +27,6 @@ export const settleMatchesWorker=async()=>{
             return
         }
 
-        await producer.connect()
-
         for(const match of completedMatches){
             const statusString=match.status.toLowerCase()
             let winningTeamId=null
@@ -43,12 +39,13 @@ export const settleMatchesWorker=async()=>{
             }
 
             if(!winningTeamId){
-                console.log(`Could not automatically determine winner for match ${match.id} with status: ${match.status}`)
+                console.log(`cant determine winner for match ${match.id} with status: ${match.status}`)
                 continue
             }
 
+            const winningTeam=match.teams.find(t=>t.id===winningTeamId)
             for(const bet of match.bets){
-                const betResult=bet.matchoutcome.teamId.toString()===winningTeamId.toString()||bet.matchoutcome.teamname.toLowerCase()===match.teams.find(t=>t.id===winningTeamId)?.name.toLowerCase()?"won":"lost"
+                const betResult=bet.matchoutcome.teamname.toLowerCase()===winningTeam?.name.toLowerCase()?"won":"lost"
                 
                 const updatedBet=await prisma.$transaction(async(tx)=>{
                     const b=await tx.bet.update({
@@ -73,18 +70,14 @@ export const settleMatchesWorker=async()=>{
                     return b
                 })
 
-                await producer.send({
-                    topic:'betting',
-                    messages:[{key:updatedBet.id,value:JSON.stringify(updatedBet)}]
-                })
+                await sendKafkaMessage('betting',updatedBet.id,updatedBet)
                 io.to(bet.userId).emit('notification',{
                     message:`Your bet on ${match.title||"match"} ${betResult==="won"?"won":"lost"}`
                 })
             }
-            console.log(`Settled ${match.bets.length} bets for match ${match.title}`)
+            console.log(`settled ${match.bets.length} bets for match ${match.title}`)
         }
-        await producer.disconnect()
     }catch(e){
-        console.error("Error in settlement worker:",e)
+        console.error(e.message)
     }
 }

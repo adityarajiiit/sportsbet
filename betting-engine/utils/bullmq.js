@@ -19,5 +19,4 @@ const removeJob=async(reminderId)=>{
     }
 }
 
-
 export {reminderQueue,delayJob,removeJob}

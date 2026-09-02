@@ -24,6 +24,7 @@ function Stocks() {
   const [teams,setTeams] = useState([])
   const [players,setPlayers] = useState([])
   const [isLoading,setIsLoading] = useState(true)
+  const [isSearching, setIsSearching] = useState(false)
   useEffect(()=>{
     const loadInitialData=async()=>{
       try{
@@ -62,7 +63,7 @@ function Stocks() {
   const [category, setcategory] = useState("Player");
   
   const getPlayers=async()=>{
-    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/gettrendingplayers`)
+    const response=await axios.get(`/api-backend/api/others/gettrendingplayers`)
     const players=response.data.map((player)=>{
       return {
         id:player.id,
@@ -89,7 +90,7 @@ function Stocks() {
     setPlayers(players)
   }
   const getTeams=async()=>{
-    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/gettrendingteams`)
+    const response=await axios.get(`/api-backend/api/others/gettrendingteams`)
     const teams=response.data.map((team)=>{
       return{
         id:team.id,
@@ -111,13 +112,15 @@ setTeams(teams)
   }
  
   const getSearchResults=async(query)=>{
-    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/search`,
-      {
-        params:{
-          q:query
-        }
-      },
-    )
+    setIsSearching(true)
+    try {
+      const response=await axios.get(`/api-backend/api/stocks/search`,
+        {
+          params:{
+            q:query
+          }
+        },
+      )
     const players=response.data.filter(result=>result.pagetype==="player").map((result)=>{
       return{
         id:result.playerId.$oid,
@@ -158,8 +161,9 @@ setTeams(teams)
    })
     setSearchPlayer(players)
     setSearchTeam(teams)
-    console.log(response.data)
-    console.log(players,teams)
+    } finally {
+      setIsSearching(false)
+    }
   }
 
   const visiblePlayers = searchQuery.length>3 ? searchPlayer : players
@@ -169,17 +173,7 @@ setTeams(teams)
     return <Loading />
   }
 
-  if(searchQuery.length>3 && visiblePlayers.length===0 && visibleTeams.length===0){
-    return (
-      <div className="pt-20 p-4 min-h-screen">
-        <NoDataState
-          title="No search results"
-          description="We could not find any players or teams for that search. Try a shorter keyword or check back once the market updates."
-          className="min-h-[28rem] flex items-center justify-center"
-        />
-      </div>
-    )
-  }
+  const noResults = searchQuery.length>3 && !isSearching && visiblePlayers.length===0 && visibleTeams.length===0;
 
   return (
     <div className="pt-20 p-4 min-h-screen ">
@@ -206,6 +200,7 @@ setTeams(teams)
           <IoSearch className="size-5" />
           <input
             type="search"
+            value={searchQuery}
             className="grow placeholder:text-white"
             onChange={(e)=>{
               setSearchQuery(e.target.value)
@@ -219,26 +214,41 @@ setTeams(teams)
             }}
             placeholder="Search"
           />
-          <kbd className="kbd kbd-sm">⌘</kbd>
-          <kbd className="kbd kbd-sm">K</kbd>
+          {isSearching ? (
+            <span className="loading loading-spinner loading-sm"></span>
+          ) : (
+            <>
+              <kbd className="kbd kbd-sm">⌘</kbd>
+              <kbd className="kbd kbd-sm">K</kbd>
+            </>
+          )}
         </label>
       </div>
-      <div className="flex h-[calc(100vh-13rem)] overflow-hidden gap-4">
-        <Sidebar players={visiblePlayers} category={category} teams={visibleTeams} />
-        <div className="w-full h-full">
-          <div className={category === "Player" ? "block h-full" : "hidden"}>
-            {selectedPlayer ? (
-              <PlayerStock player={selectedPlayer} />
-            ) : (
-              <NoSelected />
-            )}
-          </div>
-          
-          <div className={category !== "Player" ? "block h-full" : "hidden"}>
-            {selectedTeam ? <TeamStock team={selectedTeam} /> : <NoSelected />}
+      
+      {noResults ? (
+        <NoDataState
+          title="No search results"
+          description="We could not find any players or teams for that search. Try a shorter keyword or check back once the market updates."
+          className="min-h-[28rem] flex items-center justify-center"
+        />
+      ) : (
+        <div className="flex h-[calc(100vh-13rem)] overflow-hidden gap-4">
+          <Sidebar players={visiblePlayers} category={category} teams={visibleTeams} />
+          <div className="w-full h-full">
+            <div className={category === "Player" ? "block h-full" : "hidden"}>
+              {selectedPlayer ? (
+                <PlayerStock player={selectedPlayer} />
+              ) : (
+                <NoSelected />
+              )}
+            </div>
+            
+            <div className={category !== "Player" ? "block h-full" : "hidden"}>
+              {selectedTeam ? <TeamStock team={selectedTeam} /> : <NoSelected />}
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
     </div>
   );

@@ -12,7 +12,7 @@ export const getMatchInsight=async(req,res)=>{
         const{matchId}=req.params
         const userId=req.userId
         const response=await axios.post(
-            `${aiurl}/api/v1/insights/${matchId}`,
+            `${aiurl}/api/insights/${matchId}`,
             {
                 userId,
                 context:req.body.context||{},
@@ -35,7 +35,7 @@ export const getBetAdvice=async(req,res)=>{
         'Cache-Control':'no-cache',
         'Connection':'keep-alive'
        })
-       const response=await axios.get(`${aiurl}/api/v1/bet-advisor/${matchId}?userId=${userId}&query=${encodeURIComponent(query)}`,{
+       const response=await axios.get(`${aiurl}/api/bet-advisor/${matchId}?userId=${userId}&query=${encodeURIComponent(query)}`,{
         responseType:'stream'
        })
        response.data.pipe(res)
@@ -54,30 +54,12 @@ export const getBetAdvice=async(req,res)=>{
     }
 }
 
-export const getStockPrediction=async(req,res)=>{
-    try{
-        const{stockId}=req.params
-        const userId=req.userId
-        const response=await axios.post(
-            `${aiurl}/api/v1/stock-predict/${stockId}`,
-            {
-                userId,
-                context:req.body.context||{},
-                query:req.body.query||''
-            }
-        )
-        res.json(response.data)
-    }
-    catch(e){
-        console.log(e.message)
-        res.status(500).json({error:e.message})
-    }
-}
+
 
 export const getAlerts=async(req,res)=>{
     try{
         const userId=req.userId
-        const response=await axios.get(`${aiurl}/api/v1/alerts?userId=${userId}&limit=${20}`)
+        const response=await axios.get(`${aiurl}/api/alerts?userId=${userId}&limit=${20}`)
         res.json(response.data)
     }
     catch(e){
@@ -89,7 +71,7 @@ export const getAlerts=async(req,res)=>{
 export const triggerAlert=async(req,res)=>{
     try{
        const response=await axios.post(
-        `${aiurl}/api/v1/alerts/trigger`,
+        `${aiurl}/api/alerts/trigger`,
         {
             matchId:req.body.matchId
         }
@@ -115,7 +97,7 @@ export const chatStream=async(req,res)=>{
         'Connection':'keep-alive'
        })
        const response=await axios.post(
-        `${aiurl}/api/v1/chat`,
+        `${aiurl}/api/chat`,
         {
             userId,
             sessionId:req.body.sessionId||userId,

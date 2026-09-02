@@ -1,9 +1,6 @@
 import dotenv from 'dotenv'
 dotenv.config({path:'../../.env'})
-
-import {PrismaClient} from "@prisma/client"
-
-const prisma=new PrismaClient()
+import prisma from '../utils/prisma.js'
 
 const newAlert=async(req,res)=>{
     try{
@@ -13,7 +10,7 @@ const newAlert=async(req,res)=>{
         where:{id:userId}
     })
     if(!user){
-        return res.json({error:"not a user"})
+        return res.status(400).json({error:"not a user"})
     }
     const data=req.body
     console.log(data)
@@ -30,12 +27,12 @@ const newAlert=async(req,res)=>{
     console.log(alert)
 
     if(!alert){
-        return res.json({error:"alert not created"})
+        return res.status(400).json({error:"alert not created"})
     }
     return res.json({alert})
 }
 catch(e){
-    return res.json({error:e.message})
+    return res.status(500).json({error:e.message})
 }
 }
 const deleteAlert=async(req,res)=>{
@@ -45,19 +42,19 @@ const user=await prisma.user.findUnique({
     where:{id:userId}
 })
 if(!user){
-    return res.json({error:"not a user"})
+    return res.status(400).json({error:"not a user"})
 }
 const alertId=req.params.id
 const alert=await prisma.alert.delete({
-    where:{id:alertId}
+    where:{id:alertId,userId:user.id}
 })
 if(!alert){
-    return res.json({error:"alert not found"})
+    return res.status(404).json({error:"alert not found"})
 }
 return res.json({alert})
 }
 catch(e){
-    return res.json({error:e.message})
+    return res.status(500).json({error:e.message})
 }
 }
 export {newAlert,deleteAlert}

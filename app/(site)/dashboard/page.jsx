@@ -34,7 +34,7 @@ const Dashboard = () => {
     setLoading(true);
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/crypto/mockdeposit`,
+        `/api-backend/api/crypto/mockdeposit`,
         { amount: parsedAmount },
         { withCredentials: true },
       );
@@ -62,7 +62,7 @@ const Dashboard = () => {
     }
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/withdrawal/withdraw`,
+        `/api-backend/api/withdrawal/withdraw`,
         { amount: parsedAmount },
         { withCredentials: true },
       );

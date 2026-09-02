@@ -6,6 +6,7 @@ import { fileURLToPath } from "url"
 import { dirname } from "path"
 import { io } from "../../index.js"
 import {PrismaClient} from "@prisma/client"
+import {inngest} from "../../inngest/inngest.js"
 const prisma=new PrismaClient()
 dotenv.config({path:'../../.env'})
 const filename=fileURLToPath(import.meta.url)
@@ -25,7 +26,7 @@ const consumer=kafka.consumer({groupId:'betting-consumers'})
 export const betsConsumer=async()=>{
     try{
         await consumer.connect()
-        await consumer.subscribe({topics:['betting'],fromBeginning:true})
+        await consumer.subscribe({topics:['betting'],fromBeginning:false})
         await consumer.run({
             eachMessage:async({topic,partition,message,heartbeat})=>{
                 const data=JSON.parse(message.value.toString())
@@ -51,6 +52,7 @@ export const betsConsumer=async()=>{
                     totalamount+=i.amount
                 }
                 let answer=[]
+                let allPendingBets = []
                 for(const item of outcomeamount){
                     const percentage=totalamount===0?0:(item.amount/totalamount)*100
                     const newodds=percentage===0?1.01:parseFloat((100/percentage).toFixed(2))
@@ -62,8 +64,31 @@ export const betsConsumer=async()=>{
                             total:isFinite(item.amount)?item.amount:0
                         }
                     })
+                    await prisma.oddsHistory.create({
+                        data:{
+                            matchbetId:item.matchbetId,
+                            teamId:result.teamId,
+                            teamname:item.name,
+                            odds:result.odds
+                        }
+                    })
                     answer.push({odds:result.odds,teamId:result.teamId,amount:item.amount,matchbetId:item.matchbetId,name:item.name,matchoutcomesId:item.outcomeId})
+                    const pendingBets=await prisma.bet.findMany({
+                        where:{
+                            matchoutcomeId:result.id,
+                            issold:false,
+                            status:"pending"
+                        }
+                    })
+                    allPendingBets=[...allPendingBets,...pendingBets]
                 }
+                for(const bet of allPendingBets){
+                    await inngest.send({
+                        name: "bet.alerts",
+                        data: bet
+                    })
+                }
+
                 io.emit('betting-update',answer)
                 await heartbeat()
                 console.log('betting update done')

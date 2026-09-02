@@ -15,9 +15,11 @@ export default function TradeModal({
   onQuantityChange,
   exitPrice,
   onExitPriceChange,
+  takeProfitChecked,
   onTakeProfitToggle,
   stopLossPrice,
   onStopLossPriceChange,
+  stopLossChecked,
   onStopLossToggle,
   onSubmit,
   sellButtonBorderless = false,
@@ -51,9 +53,11 @@ export default function TradeModal({
         <ExitStrategyFieldset
           exitPrice={exitPrice}
           onExitPriceChange={onExitPriceChange}
+          takeProfitChecked={takeProfitChecked}
           onTakeProfitToggle={onTakeProfitToggle}
           stopLossPrice={stopLossPrice}
           onStopLossPriceChange={onStopLossPriceChange}
+          stopLossChecked={stopLossChecked}
           onStopLossToggle={onStopLossToggle}
           theme={theme}
         />

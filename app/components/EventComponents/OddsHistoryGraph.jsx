@@ -11,9 +11,10 @@ import {
   ResponsiveContainer
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
-const OddsHistoryGraph=({matchbetId,team1Name,team2Name})=>{
+const OddsHistoryGraph=({matchbetId,team1Name,team2Name,liveOdds})=>{
   const [data,setData]=useState([])
   const [loading,setLoading]=useState(true)
+  
   useEffect(()=>{
     if(!matchbetId){
       setLoading(false)
@@ -22,26 +23,34 @@ const OddsHistoryGraph=({matchbetId,team1Name,team2Name})=>{
     const fetchHistory=async()=>{
       try{
         const response=await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL||"http://localhost:4000"}/api/others/oddshistory?matchbetId=${matchbetId}`
+          `/api-backend/api/others/oddshistory?matchbetId=${matchbetId}`
         )
         if(response.data.history){
           const groupedData={}
           response.data.history.forEach(item=>{
-            const timeKey=new Date(item.timestamp).toLocaleTimeString([],{
-              hour:'2-digit',
-              minute:'2-digit'
-            })
-            if(!groupedData[timeKey]){
-              groupedData[timeKey]={time:timeKey}
+            const ts=new Date(item.timestamp).getTime()
+            const bucket=Math.floor(ts/(5*60*1000))*(5*60*1000)
+            const key=bucket.toString()
+            if(!groupedData[key]){
+              groupedData[key]={_ts:bucket}
             }
             if(item.teamname===team1Name){
-              groupedData[timeKey].team1=parseFloat(item.odds)
-            }
-            else{
-              groupedData[timeKey].team2=parseFloat(item.odds)
+              groupedData[key].team1=parseFloat(item.odds)
+            }else{
+              groupedData[key].team2=parseFloat(item.odds)
             }
           })
-          const formattedData=Object.values(groupedData)
+          const sorted=Object.values(groupedData).sort((a,b)=>a._ts-b._ts)
+          let lastTeam1=null,lastTeam2=null
+          const formattedData=sorted.map(point=>{
+            if(point.team1!==undefined) lastTeam1=point.team1
+            if(point.team2!==undefined) lastTeam2=point.team2
+            return{
+              time:new Date(point._ts).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+              team1:lastTeam1,
+              team2:lastTeam2
+            }
+          }).filter(p=>p.team1!==null&&p.team2!==null)
           setData(formattedData)
         }
       }
@@ -53,7 +62,7 @@ const OddsHistoryGraph=({matchbetId,team1Name,team2Name})=>{
       }
     }
     fetchHistory()
-  }, [matchbetId, team1Name])
+  },[matchbetId,team1Name,team2Name,liveOdds])
 
   if(loading){
     return <div className="w-full h-[28rem] flex items-center justify-center text-gray-500 font-inter">Loading chart...</div>

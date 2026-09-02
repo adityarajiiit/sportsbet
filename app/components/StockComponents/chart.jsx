@@ -1,106 +1,80 @@
-import React from "react";
-import { init, dispose, Chart } from "klinecharts";
-import { useState, useEffect, useRef } from "react";
-function TradeChart() {
-  const chartRef = useRef(null);
-  const chartInstance = useRef(null);
-  useEffect(() => {
-    if (!chartRef.current || chartInstance.current) return;
-    chartInstance.current = init(chartRef.current);
-    chartInstance.current?.applyNewData([
-      {
-        timestamp: 1517846400000,
-        open: 7424.6,
-        high: 7511.3,
-        low: 6032.3,
-        close: 7310.1,
-        volume: 224461,
-      },
-      {
-        timestamp: 1517932800000,
-        open: 7310.1,
-        high: 8499.9,
-        low: 6810,
-        close: 8165.4,
-        volume: 148807,
-      },
-      {
-        timestamp: 1518019200000,
-        open: 8166.7,
-        high: 8700.8,
-        low: 7400,
-        close: 8245.1,
-        volume: 24467,
-      },
-      {
-        timestamp: 1518105600000,
-        open: 8244,
-        high: 8494,
-        low: 7760,
-        close: 8364,
-        volume: 29834,
-      },
-      {
-        timestamp: 1518192000000,
-        open: 8363.6,
-        high: 9036.7,
-        low: 8269.8,
-        close: 8311.9,
-        volume: 28203,
-      },
-      {
-        timestamp: 1518278400000,
-        open: 8301,
-        high: 8569.4,
-        low: 7820.2,
-        close: 8426,
-        volume: 59854,
-      },
-      {
-        timestamp: 1518364800000,
-        open: 8426,
-        high: 8838,
-        low: 8024,
-        close: 8640,
-        volume: 54457,
-      },
-      {
-        timestamp: 1518451200000,
-        open: 8640,
-        high: 8976.8,
-        low: 8360,
-        close: 8500,
-        volume: 51156,
-      },
-      {
-        timestamp: 1518537600000,
-        open: 8504.9,
-        high: 9307.3,
-        low: 8474.3,
-        close: 9307.3,
-        volume: 49118,
-      },
-      {
-        timestamp: 1518624000000,
-        high: 9897,
-        low: 9182.2,
-        volume: 48092,
-      },
-    ]);
+"use client"
+import React from "react"
+import {init,dispose} from "klinecharts"
+import {useState,useEffect,useRef} from "react"
+import axios from "axios"
 
-    const handleResize = () => chartInstance.current?.resize();
-    window.addEventListener("resize", handleResize);
+const apiurl='/api-backend'
 
-    return () => {
-      dispose(chartRef.current);
-    };
-  }, []);
-
-  return (
-    <div className="h-[28rem] w-full border border-base-content/10 rounded-xl relative">
-      <div ref={chartRef} className="h-[28rem] w-full"></div>
-    </div>
-  );
+const buildCandles=(history)=>{
+    if(!history||history.length===0) return []
+    const interval=24*60*60*1000
+    const buckets={}
+    history.forEach(item=>{
+        const t=new Date(item.createdAt).getTime()
+        const bucket=Math.floor(t/interval)*interval
+        if(!buckets[bucket]){
+            buckets[bucket]={
+                timestamp:bucket,
+                open:parseFloat(item.price),
+                high:parseFloat(item.price),
+                low:parseFloat(item.price),
+                close:parseFloat(item.price),
+                volume:1
+            }
+        }else{
+            const p=parseFloat(item.price)
+            if(p>buckets[bucket].high) buckets[bucket].high=p
+            if(p<buckets[bucket].low) buckets[bucket].low=p
+            buckets[bucket].close=p
+            buckets[bucket].volume+=1
+        }
+    })
+    return Object.values(buckets).sort((a,b)=>a.timestamp-b.timestamp)
 }
 
-export default TradeChart;
+function TradeChart({stockId}){
+    const chartRef=useRef(null)
+    const chartInstance=useRef(null)
+    const [loading,setLoading]=useState(true)
+
+    useEffect(()=>{
+        if(!chartRef.current||chartInstance.current) return
+        chartInstance.current=init(chartRef.current)
+        const handleResize=()=>chartInstance.current?.resize()
+        window.addEventListener("resize",handleResize)
+        return ()=>{
+            window.removeEventListener("resize",handleResize)
+            dispose(chartRef.current)
+            chartInstance.current=null
+        }
+    },[])
+
+    useEffect(()=>{
+        if(!stockId||typeof stockId!=="string"||stockId.length!==24) return
+        const fetchData=async()=>{
+            setLoading(true)
+            try{
+                const response=await axios.get(`${apiurl}/api/stocks/pricehistory`,{params:{stockId}})
+                const candles=buildCandles(response.data.history||[])
+                if(chartInstance.current&&candles.length>0){
+                    chartInstance.current.applyNewData(candles)
+                }
+            }catch(e){
+                console.error(e)
+            }finally{
+                setLoading(false)
+            }
+        }
+        fetchData()
+    },[stockId])
+
+    return(
+        <div className="h-[28rem] w-full border border-base-content/10 rounded-xl relative">
+            {loading&&<div className="absolute inset-0 flex items-center justify-center"><span className="loading loading-spinner loading-md text-info"></span></div>}
+            <div ref={chartRef} className="h-[28rem] w-full"></div>
+        </div>
+    )
+}
+
+export default TradeChart

@@ -21,14 +21,18 @@ import { toast } from "sonner";
 function Navbar() {
   const { data: session } = useSession();
   const { theme } = useThemeStore();
-  const { walletBalance, refreshUser } = useUserStore();
+  const { walletBalance, refreshUser, fetchReminders } = useUserStore();
   useEffect(() => {
     refreshUser();
   }, []);
   useEffect(() => {
     if (!session?.user?.id) return;
+    fetchReminders();
+  }, [session?.user?.id]);
+  useEffect(() => {
+    if (!session?.user?.id) return;
     const socket = io(
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
+       (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://sportsbet-betting.onrender.com') ,
     );
     socket.on("connect", () => {
       socket.emit("join-room", session.user.id);

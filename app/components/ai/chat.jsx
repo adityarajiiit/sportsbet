@@ -11,7 +11,7 @@ import {v4 as uuidv4} from 'uuid'
 import { toast } from "sonner";
 import ReactMarkdown from 'react-markdown'
 import {useAiContext} from '@/app/store/useAiContext'
-const apiurl=process.env.NEXT_PUBLIC_API_URL||'http://localhost:4000'
+const apiurl='/api-backend'
 export default function Chat(){
   const[isOpen,setIsOpen]=useState(false)
   const[input,setInput]=useState('')
@@ -192,7 +192,7 @@ export default function Chat(){
     const isUser=msg.role==='user'
     return(
       <motion.div
-      intital={{
+      initial={{
         opacity:0,
         y:10,
         scale:0.95
@@ -286,20 +286,9 @@ export default function Chat(){
         transition={{
           type:'spring'
         }}
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-2.5 px-5 py-3 rounded-full font-poppins font-semibold text-sm text-base-100 bg-warning cursor-pointer"
+        className="fixed bottom-4 right-4 md:bottom-5 md:right-5 z-50 flex items-center gap-2 md:gap-2.5 px-4 py-2.5 md:px-5 md:py-3 rounded-full font-poppins font-semibold text-sm text-base-100 bg-warning cursor-pointer shadow-lg"
         >
-        <motion.span
-        animate={{
-          scale:[1,1.5,1],
-          opacity:[0.5,0,0.5]
-        }}
-        transition={{
-          duration:2.5,
-          repeat:Infinity,
-          ease:'easeInOut'
-        }}
-        className="absolute inset-0 rounded-full bg-warning"
-        />
+
         <Sparkles className="size-4.5 shrink-0 relative z-10"/>
         <span className="relative z-10">Ask AI</span>
         </motion.button>
@@ -326,7 +315,7 @@ export default function Chat(){
         transition={{
           type:'spring'
         }}
-        className="fixed bottom-6 right-6 z-50 flex flex-col w-[380px] h-[560px] rounded-2xl overflow-hidden bg-base-200 border border-base-content/10"
+        className="fixed bottom-0 right-0 md:bottom-6 md:right-6 z-[60] flex flex-col w-full h-[85dvh] md:w-[380px] md:h-[560px] rounded-t-2xl md:rounded-2xl overflow-hidden bg-base-200 border-t md:border border-base-content/10 shadow-2xl"
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-base-content/10 bg-base-300 shrink-0">
           <div className="flex items-center gap-3">
@@ -440,7 +429,7 @@ export default function Chat(){
               disabled:opacity-40 transition-all duration-150
               "
               >
-                <IoSend className="size-4 ${input.trim()?'text-base-100':'text-warning/50'}"/>
+                <IoSend className={`size-4 ${input.trim()?'text-base-100':'text-warning/50'}`}/>
               </motion.button>
               )}
             </form>

@@ -71,7 +71,7 @@ export default function Home() {
 
   return (
     <div
-      className=" flex flex-col justify-center items-center pt-20"
+      className="flex flex-col justify-center items-center pt-10 md:pt-20 w-full overflow-hidden"
     >
       <div className="grid grid-cols-1 md:grid-cols-2 place-items-center  top-0 p-4 gap-4  h-full">
         <div className="flex flex-col justify-center items-center md:items-start p-4">
@@ -84,7 +84,7 @@ export default function Home() {
             </div>
             <span className="absolute -bottom-0 left-[1.125rem] h-px w-[calc(100%-2.25rem)] bg-gradient-to-r from-emerald-400/0 via-emerald-400/90 to-emerald-400/0 transition-opacity duration-500 group-hover:opacity-40"></span>
           </button>
-          <p className=" md:items-start gap-1 text-white font-bold font-poppins py-2 md:text-5xl text-6xl lg:text-6xl text-center max-w-4xl uppercase md:text-left">
+          <p className=" md:items-start gap-1 text-white font-bold font-poppins py-2 text-4xl md:text-5xl lg:text-6xl text-center max-w-4xl uppercase md:text-left">
             Where Every{" "}
             <span className="bg-gradient-to-r from-lime-200 to-yellow-300 bg-clip-text text-transparent">
               Bet
@@ -131,7 +131,7 @@ export default function Home() {
           width={400}
           height={400}
           alt=""
-          className="relative h-[30rem] w-full"
+          className="relative h-[20rem] md:h-[30rem] w-full object-contain"
         />
       </div>
       <div className="flex flex-col justify-center items-center w-full p-3">
@@ -219,7 +219,7 @@ export default function Home() {
         <h1 className="pl-4 text-3xl font-inter font-black uppercase">
           Sports <span className="text-warning">Betting</span>
         </h1>
-        <p className="font-inter pl-4 font-normal text-sm text-neutral-300 w-sm md:w-md lg:w-lg">
+        <p className="font-inter pl-4 font-normal text-sm text-neutral-300 max-w-sm md:max-w-md lg:max-w-lg w-full">
           Explore the most exciting sports.
         </p>
       </div>

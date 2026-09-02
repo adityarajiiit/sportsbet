@@ -26,7 +26,7 @@ export const matchfetch=async()=>{
     try{
         await consumer.connect()
         await consumer.subscribe({
-            topics:['upcoming-matches','recent-matches','live-matches'],
+            topics:['matches'],
             fromBeginning:false
         })
         await consumer.run({
@@ -34,7 +34,7 @@ export const matchfetch=async()=>{
                 const data=JSON.parse(message.value.toString())
                 console.log(data)
                 io.emit('match-update',{
-                    topic,
+                    topic: data.type || topic,
                     partition,
                     data
                 })

@@ -11,6 +11,8 @@ export default function BettingControls({
   setExitPrice,
   StopLossPrice,
   setStopLossPrice,
+  istakeprofitchecked,
+  isstoplosschecked,
   setIstakeprofitchecked,
   setIsstoplosschecked,
   newBet,
@@ -36,9 +38,11 @@ export default function BettingControls({
             walletBalance={walletBalance}
             exitPrice={ExitPrice}
             onExitPriceChange={setExitPrice}
+            takeProfitChecked={istakeprofitchecked}
             onTakeProfitToggle={setIstakeprofitchecked}
             stopLossPrice={StopLossPrice}
             onStopLossPriceChange={setStopLossPrice}
+            stopLossChecked={isstoplosschecked}
             onStopLossToggle={setIsstoplosschecked}
             onPlaceBet={() => newBet("team1")}
           />
@@ -62,9 +66,11 @@ export default function BettingControls({
             walletBalance={walletBalance}
             exitPrice={ExitPrice}
             onExitPriceChange={setExitPrice}
+            takeProfitChecked={istakeprofitchecked}
             onTakeProfitToggle={setIstakeprofitchecked}
             stopLossPrice={StopLossPrice}
             onStopLossPriceChange={setStopLossPrice}
+            stopLossChecked={isstoplosschecked}
             onStopLossToggle={setIsstoplosschecked}
             onPlaceBet={() => newBet("team2")}
           />

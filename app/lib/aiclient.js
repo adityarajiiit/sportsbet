@@ -2,7 +2,7 @@
 import {useState,useCallback} from 'react'
 import{toast} from 'sonner'
 
-const api= process.env.NEXT_PUBLIC_API_URL
+const api= '/api-backend'
 
 export const useMatchInsight=()=>{
     const[data,setData]=useState(null)

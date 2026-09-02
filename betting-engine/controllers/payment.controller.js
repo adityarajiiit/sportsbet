@@ -5,13 +5,13 @@ import dotenv from "dotenv"
 import crypto from "crypto"
 dotenv.config({path:'../../.env'})
 
-const frontendBaseUrl=process.env.FRONTEND_URL||'http://localhost:3000'
-const backendBaseUrl=process.env.BACKEND_URL||'http://localhost:4000'
-const paymentCurrency=process.env.MAXELPAY_CURRENCY||'USD'
+const frontendBaseUrl=process.env.FRONTEND_URL
+const backendBaseUrl=process.env.BACKEND_URL
+const paymentCurrency=process.env.MAXELPAY_CURRENCY
 const frontendUrl=`${frontendBaseUrl}/dashboard`
-const callbackUrl=(process.env.MAXELPAY_CALLBACK_URL).trim()
-const successUrl=(process.env.MAXELPAY_SUCCESS_URL).trim()
-const cancelUrl=(process.env.MAXELPAY_CANCEL_URL).trim()
+const callbackUrl=process.env.MAXELPAY_CALLBACK_URL.trim()
+const successUrl=process.env.MAXELPAY_SUCCESS_URL.trim()
+const cancelUrl=process.env.MAXELPAY_CANCEL_URL.trim()
 
 const isValidAbsoluteUrl=(value)=>{
     try{

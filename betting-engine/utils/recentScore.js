@@ -108,11 +108,11 @@ export const fetchRecentMatchScore=async()=>{
                     
                     if(isFinished){
                         await producer.send({
-                            topic:'recent-matches',
+                            topic:'matches',
                             messages:[
                                 {
                                     key:matchId.toString(),
-                                    value:JSON.stringify(updatematch)
+                                    value:JSON.stringify({...updatematch, type: 'recent-matches'})
                                 }
                             ]
                         })

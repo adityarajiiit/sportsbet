@@ -11,6 +11,10 @@ export default function TeamTradeControls({
   setExitPrice,
   StopLossPrice,
   setStopLossPrice,
+  buyTakeProfit,
+  buyStopLoss,
+  sellTakeProfit,
+  sellStopLoss,
   setBuyTakeProfit,
   setBuyStopLoss,
   setSellTakeProfit,
@@ -38,9 +42,11 @@ export default function TeamTradeControls({
         onQuantityChange={setnoOfStocks}
         exitPrice={ExitPrice}
         onExitPriceChange={setExitPrice}
+        takeProfitChecked={buyTakeProfit}
         onTakeProfitToggle={setBuyTakeProfit}
         stopLossPrice={StopLossPrice}
         onStopLossPriceChange={setStopLossPrice}
+        stopLossChecked={buyStopLoss}
         onStopLossToggle={setBuyStopLoss}
         onSubmit={() => {
           newBuytransaction(
@@ -71,9 +77,11 @@ export default function TeamTradeControls({
         onQuantityChange={setnoOfStocksSell}
         exitPrice={ExitPrice}
         onExitPriceChange={setExitPrice}
+        takeProfitChecked={sellTakeProfit}
         onTakeProfitToggle={setSellTakeProfit}
         stopLossPrice={StopLossPrice}
         onStopLossPriceChange={setStopLossPrice}
+        stopLossChecked={sellStopLoss}
         onStopLossToggle={setSellStopLoss}
         onSubmit={() => {
           newSelltransaction(

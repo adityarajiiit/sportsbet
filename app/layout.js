@@ -54,9 +54,9 @@ export default function RootLayout({ children }) {
   }, [hydrateTheme]);
 
   return (
-    <html lang="en" data-theme={theme}>
+    <html lang="en" data-theme={theme} className="overflow-x-hidden">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${goldman.variable} ${inter.variable} ${poppins.variable} ${anton.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${goldman.variable} ${inter.variable} ${poppins.variable} ${anton.variable} antialiased overflow-x-hidden`}
       >
         <SessionProvider>
           <Toaster position="top-right" richColors closeButton duration={4000} />

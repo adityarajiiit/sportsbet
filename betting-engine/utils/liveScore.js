@@ -102,11 +102,11 @@ export const fetchLiveMatchScore=async()=>{
                     })
                     
                     await producer.send({
-                        topic:'live-matches',
+                        topic:'matches',
                         messages:[
                             {
                                 key:matchId.toString(),
-                                value:JSON.stringify({matchId,liveScore,status,sportType:ep.sport})
+                                value:JSON.stringify({matchId,liveScore,status,sportType:ep.sport, type: 'live-matches'})
                             }
                         ]
                     })

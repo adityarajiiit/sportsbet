@@ -13,7 +13,7 @@ function Event() {
 
 useEffect(()=>{
       fetchMatches()
-      const socket=io(process.env.NEXT_PUBLIC_API_URL||"http://localhost:4000")
+      const socket=io( (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://sportsbet-betting.onrender.com') )
       socket.on("connect",()=>{
         console.log("connected to socket server")
       })
@@ -35,7 +35,7 @@ useEffect(()=>{
       }
     },[])
     const fetchMatches=async()=>{
-      const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/livematches`)
+      const response=await axios.get(`/api-backend/api/others/livematches`)
       console.log(response.data)
       setLiveevents(response.data)
     }

@@ -12,8 +12,6 @@ import { useAiContext } from "@/app/store/useAiContext";
 import { Label, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts";
 import { FaReply } from "react-icons/fa";
 import { MdCancel } from "react-icons/md";
-import { FaHourglassStart } from "react-icons/fa";
-import { FaHourglassEnd } from "react-icons/fa";
 import { motion, AnimatePresence } from "motion/react";
 import { useSession } from "next-auth/react";
 import { io } from "socket.io-client";
@@ -26,8 +24,6 @@ import WinPredictionChart from "@/app/(site)/event/score/components/matrix.jsx";
 import { TbShirtSport } from "react-icons/tb";
 import Loading from "@/app/loading";
 
-function EventScore({ params }) {
-  params = use(params);
 import {
   ChartContainer,
   ChartTooltip,
@@ -35,6 +31,7 @@ import {
 } from "@/components/ui/chart";
 import MatchInsight from "@/app/components/ai/MatchInsight"
 import BetAdvisor from "@/app/components/ai/BetAdvisor";
+
 function EventScore({params}) {
   params=use(params)
   const [buyamount, setBuyAmount] = useState(0);
@@ -52,43 +49,10 @@ function EventScore({params}) {
   const session = useSession();
   const { refreshUser, walletBalance } = useUserStore();
 
-  useEffect(() => {
-    const socket = io(
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
-    );
-    setSocket(socket);
-    socket.on("connect", () => {
-      socket.emit("join-room", params.matchid);
-    });
-    socket.on("match-update", (data) => {
-      const matchinfo = data?.data?.matchInfo;
-      const matchscore = data?.data?.matchScore;
-      if (matchinfo?.matchId === params.matchid) {
-  const[isstoplosschecked,setIsstoplosschecked]=useState(false)
-  const[istakeprofitchecked,setIstakeprofitchecked]=useState(false)
-  const [CommentIndex, setCommentIndex] = useState(null);
-  const [showReplies, setShowReplies] = useState(null);
-  const [replyIndex, setReplyIndex] = useState(null);
-  const { selectedEvent } = useSelectedEvent();
-  const [matchid,setMatchid]=useState("")
-  const [usercomment,setUsercomment]=useState({
-    null:""
-  })
-  const event = selectedEvent;
-  const [comments,setComments]=useState([
-    
-  ])
-  const [score,setScore]=useState({})
-  const [socket,setSocket]=useState(null)
-  const [matchbets,setMatchbets]=useState([])
-  const session=useSession()
-  const {refreshUser,walletBalance}=useUserStore()
   const {setMatchContext,clearContext}=useAiContext()
-
   useEffect(()=>{
-    fetchscore()
     
-    const socket=io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000")
+    const socket=io( (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://sportsbet-betting.onrender.com') )
     setSocket(socket)
     socket.on("connect",()=>{
       socket.emit("join-room",params.matchid)
@@ -186,77 +150,7 @@ function EventScore({params}) {
     };
   }, [params.matchid]);
 
-  const getmatchId = async () => {
-    const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getmatchid`,
-      { params: { cricbuzzmatchId: params.matchid } },
-    );
-    setMatchid(response.data.matchId);
-  };
 
-  const fetchscore = async () => {
-    const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/match/${params.matchid}`,
-    );
-    const data = response.data;
-    })
-  socket.on("comment-added",(data)=>{
-
-  const receivedcomment={
-    author:data.name,
-    id:data.id,
-    date:new Date(data.createdAt).toLocaleString(),
-    chat:data.message,
-    replies:data.replies,
-    replyto:data.replyto||null
-  }
-  if(data.parentcommentId===null){
-    setComments(prevComments=>[...prevComments,receivedcomment])
-  }
-  else{
-    setComments(prevComments=>{
-      const updatedComments=[...prevComments]
-      const index=updatedComments.findIndex(comment=>comment.id===data.parentcommentId)
-      if(index!==-1){
-        updatedComments[index]={
-          ...updatedComments[index],
-          replies:[...(updatedComments[index].replies||[]),receivedcomment]
-        }
-      }
-      return updatedComments
-    });
-  }
-})
-socket.on('betting-update',(data)=>{
-  console.log(data)
-  const oddsandamount=data.map((outcome)=>{
-    return{
-      id:outcome.teamId,
-      odds:outcome.odds,
-      amount:outcome.amount,
-      name:outcome.name,
-      matchbetId:outcome.matchbetId,
-      matchoutcomesId:outcome.matchoutcomesId
-    }
-  })
-  setMatchbets(oddsandamount)
-})
-    return()=>{
-      socket.emit("leave-room",params.matchid)
-      socket.off("connect")
-      socket.off("match-update")
-      socket.off("comment-added")
-      socket.off("betting-update")
-      socket.disconnect()
-    }
-  },[])
-  useEffect(()=>{
-    if(score.matchId){
-      getmatchId()
-      getComments()
-      getMatchbets()
-    }
-  },[score.matchId])
   useEffect(()=>{
     if(score.matchId){
       setMatchContext(
@@ -276,10 +170,10 @@ socket.on('betting-update',(data)=>{
       )
     }
     return()=>{clearContext()}
-  },[score,matchbets])
+  },[score.matchId])
 
   const getmatchId=async()=>{
-    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getmatchid`,{
+    const response=await axios.get(`/api-backend/api/others/getmatchid`,{
       params:{
         cricbuzzmatchId:params.matchid
       }
@@ -287,7 +181,7 @@ socket.on('betting-update',(data)=>{
     setMatchid(response.data.matchId)
   }
   const fetchscore=async()=>{
-    const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/match/${params.matchid}`)
+    const response=await axios.get(`/api-backend/api/others/match/${params.matchid}`)
   
     const data=response.data
     setScore({
@@ -314,16 +208,16 @@ socket.on('betting-update',(data)=>{
 
   const getComments = async (matchId) => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/comments/getcomments`,
+      `/api-backend/api/comments/getcomments`,
       {
         params: {
           pagetype: "match",
           matchId,
           parentcommentId: null,
         },
-      },
-      { headers: { "Content-Type": "application/json" } },
+      }
     );
+    if(!Array.isArray(response.data)) return
     const allcomments = response.data.map((comment) => ({
       author: comment.user.name,
       id: comment.id,
@@ -354,9 +248,8 @@ socket.on('betting-update',(data)=>{
 
   const getMatchbets = async (matchId) => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getmatchbets`,
-      { params: { matchId } },
-      { headers: { "Content-Type": "application/json" } },
+      `/api-backend/api/others/getmatchbets`,
+      { params: { matchId } }
     );
     const matchbetoutcomes = response.data.matchbetoutcomes;
     const oddsandamount = matchbetoutcomes.map((outcome) => ({
@@ -383,6 +276,20 @@ socket.on('betting-update',(data)=>{
       toast.error("Betting odds are not yet initialized for this match");
       return;
     }
+    if (isstoplosschecked && Number(StopLossPrice) <= 0) {
+      toast.error("Stop loss must be greater than 0");
+      return;
+    }
+    if (istakeprofitchecked && Number(ExitPrice) <= 0) {
+      toast.error("Take profit must be greater than 0");
+      return;
+    }
+    if (isstoplosschecked && istakeprofitchecked) {
+      if (Number(StopLossPrice) >= Number(ExitPrice)) {
+        toast.error("Stop loss should be less than take profit");
+        return;
+      }
+    }
     const data = {
       matchId: score.matchId,
       type: "full",
@@ -398,7 +305,7 @@ socket.on('betting-update',(data)=>{
     };
     try {
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/bets/newbet`,
+        `/api-backend/api/bets/newbet`,
         data,
         {
           headers: { "Content-Type": "application/json" },
@@ -409,22 +316,22 @@ socket.on('betting-update',(data)=>{
       if (istakeprofitchecked) await setTakeprofit(response.data.bet.id);
       refreshUser();
       toast.success("Bet placed successfully");
+      setIstakeprofitchecked(false);
+      setIsstoplosschecked(false);
+      setExitPrice(0);
+      setStopLossPrice(0);
     } catch (error) {
       toast.error(error.message);
     }
   };
 
   const setStoploss = async (betId) => {
-    if (StopLossPrice >= ExitPrice) {
-      toast.error("Stop loss should be less than exit price");
-      return;
-    }
     await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,
+      `/api-backend/api/alerts/newalert`,
       {
         pagetype: "match",
         betId,
-        condition: { type: "low", value: StopLossPrice, action: "sell" },
+        condition: { type: "low", value: Number(StopLossPrice), action: "sell" },
       },
       {
         headers: { "Content-Type": "application/json" },
@@ -434,16 +341,12 @@ socket.on('betting-update',(data)=>{
   };
 
   const setTakeprofit = async (betId) => {
-    if (ExitPrice <= StopLossPrice) {
-      toast.error("Take profit should be greater than stop loss");
-      return;
-    }
     await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,
+      `/api-backend/api/alerts/newalert`,
       {
         pagetype: "match",
         betId,
-        condition: { type: "high", value: ExitPrice, action: "sell" },
+        condition: { type: "high", value: Number(ExitPrice), action: "sell" },
       },
       {
         headers: { "Content-Type": "application/json" },
@@ -582,6 +485,8 @@ socket.on('betting-update',(data)=>{
                 setExitPrice={setExitPrice}
                 StopLossPrice={StopLossPrice}
                 setStopLossPrice={setStopLossPrice}
+                istakeprofitchecked={istakeprofitchecked}
+                isstoplosschecked={isstoplosschecked}
                 setIstakeprofitchecked={setIstakeprofitchecked}
                 setIsstoplosschecked={setIsstoplosschecked}
                 newBet={newBet}
@@ -593,16 +498,17 @@ socket.on('betting-update',(data)=>{
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <WinPredictionChart
-          team1Name={score.team1}
-          team2Name={score.team2}
+          team1Name={matchbets[0]?.name||score.team1}
+          team2Name={matchbets[1]?.name||score.team2}
           team1Amount={matchbets[0]?.amount}
           team2Amount={matchbets[1]?.amount}
         />
 
         <OddsHistoryGraph
           matchbetId={matchbets[0]?.matchbetId}
-          team1Name={score.team1}
-          team2Name={score.team2}
+          team1Name={matchbets[0]?.name||score.team1}
+          team2Name={matchbets[1]?.name||score.team2}
+          liveOdds={matchbets}
         />
         <div className="h-full w-full border border-base-content/10 rounded-xl md:col-span-2">
           <div className="p-3 border-b border-base-content/10">

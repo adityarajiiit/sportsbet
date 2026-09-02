@@ -61,11 +61,11 @@ export const upcomingmatchesFetch=async()=>{
         }
         for(const match of matches){
             await producer.send({
-                topic:'upcoming-matches',
+                topic:'matches',
                 messages:[
                     {
                         key:match.matchInfo.matchId.toString(),
-                        value:JSON.stringify(match)
+                        value:JSON.stringify({...match, type: 'upcoming-matches'})
                     }
                 ]
             })
@@ -133,11 +133,11 @@ export const recentmatchesFetch=async()=>{
         }
         for(const match of matches){
             await producer.send({
-                topic:'recent-matches',
+                topic:'matches',
                 messages:[
                     {
                         key:match.matchInfo.matchId.toString(),
-                        value:JSON.stringify(match)
+                        value:JSON.stringify({...match, type: 'recent-matches'})
                     }
                 ]
             })
@@ -205,11 +205,11 @@ export const livematchesFetch=async()=>{
         }
         for(const match of matches){
             await producer.send({
-                topic:'live-matches',
+                topic:'matches',
                 messages:[
                     {
                         key:match.matchInfo.matchId.toString(),
-                        value:JSON.stringify(match)
+                        value:JSON.stringify({...match, type: 'live-matches'})
                     }
                 ]
             })

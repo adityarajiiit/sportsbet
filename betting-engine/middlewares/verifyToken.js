@@ -3,7 +3,11 @@ import dotenv from 'dotenv'
 dotenv.config({path:'../../.env'})
 export const verifyToken=async(req,res,next)=>{
     try{
-        const token=await getToken({req,secret:process.env.SECRET})
+        const token=await getToken({
+            req,
+            secret:process.env.SECRET,
+            secureCookie: process.env.NODE_ENV==='production'
+        })
         if(!token){
             return res.json({error:"no token"})
         }

@@ -36,7 +36,7 @@ export default function AlertsPanel(){
             <div className="absolute right-0 top-12 w-80 max-h-96 bg-base-200 border border-base-content/20 rounded-xl shadow-xl z-50 flex flex-col overflow-hidden">
                 <div className="flex items-center gap-2 px-4 py-3 border-b border-base-content/10">
                     <Sparkles className="size-4 text-warning"/>
-                    <p className="font-poppins font-semibold text-sm">AI Smart Alerts</p>
+                    <p className="font-poppins font-semibold text-sm">Notifications</p>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                     {loading&&(
@@ -46,12 +46,12 @@ export default function AlertsPanel(){
                     )}
                     {!loading&&alerts.length===0&&(
                         <p className="text-xs text-base-content/40 font-inter text-center p-6">
-                            No smart alerts yet
+                            No notifications yet
                         </p>
                     )}
                     {!loading&&alerts.map((alert,i)=>(
                         <div key={i} className="px-4 py-3 border-b border-base-content/5 hover:bg-base-300 transition-colors">
-                            <p className="font-poppins font-semibold text-xs">{alert.title||'Smart Alert'}</p>
+                            <p className="font-poppins font-semibold text-xs">{alert.title||'Notification'}</p>
                             <p className="font-inter text-xs text-base-content/60 mt-0.5 line-clamp-2">
                                 {alert.summary||alert.content?.summary||''}
                             </p>

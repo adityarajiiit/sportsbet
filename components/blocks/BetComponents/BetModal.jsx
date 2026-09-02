@@ -10,9 +10,11 @@ export default function BetModal({
   walletBalance,
   exitPrice,
   onExitPriceChange,
+  takeProfitChecked,
   onTakeProfitToggle,
   stopLossPrice,
   onStopLossPriceChange,
+  stopLossChecked,
   onStopLossToggle,
   onPlaceBet,
 }) {
@@ -56,9 +58,11 @@ export default function BetModal({
               <ExitStrategyFieldset
                 exitPrice={exitPrice}
                 onExitPriceChange={onExitPriceChange}
+                takeProfitChecked={takeProfitChecked}
                 onTakeProfitToggle={onTakeProfitToggle}
                 stopLossPrice={stopLossPrice}
                 onStopLossPriceChange={onStopLossPriceChange}
+                stopLossChecked={stopLossChecked}
                 onStopLossToggle={onStopLossToggle}
                 theme={theme}
               />

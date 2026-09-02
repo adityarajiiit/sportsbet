@@ -11,6 +11,7 @@ export const authOptions={
         GoogleProvider({
             clientId:process.env.GOOGLE_ID,
             clientSecret:process.env.GOOGLE_SECRET,
+            allowDangerousEmailAccountLinking: true,
         }),
         CredentialsProvider({
             name:"credentials",
@@ -45,6 +46,17 @@ export const authOptions={
     secret:process.env.SECRET,
     session:{
         strategy:"jwt",
+    },
+    cookies:{
+        sessionToken:{
+            name:process.env.NODE_ENV==='production'?'__Secure-next-auth.session-token':'next-auth.session-token',
+            options:{
+                httpOnly:true,
+                sameSite:'none',
+                path:'/',
+                secure:true
+            }
+        }
     },
     debug:process.env.NODE_ENV==="development",
 }

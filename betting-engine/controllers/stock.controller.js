@@ -1,10 +1,8 @@
 import dotenv from 'dotenv'
 dotenv.config({path:'../../.env'})
-import {PrismaClient} from "@prisma/client"
+import prisma from "../utils/prisma.js"
+import {sendKafkaMessage} from "../utils/kafka.js/producer.js"
 
-const prisma=new PrismaClient()
-import { producer } from "../utils/kafka.js/producer.js"
-import {io} from "../index.js"
 const newStockTransaction=async(req,res)=>{
     try{
         const userId=req.userId
@@ -20,135 +18,37 @@ const newStockTransaction=async(req,res)=>{
         if(data.type!=="buy"){
             return res.status(400).json({error:"only buy transaction"})
         }
-        const transaction = await prisma.$transaction(async (tx) => {
-            const stock=await tx.stock.findUnique({
-                where:{
-                    id:data.stockId
-                }
-            })
-            if(!stock){
-                throw new Error("no stock")
-            }
-            console.log("data is :",data)
-            const sharestobuy=Math.floor(data.total/stock.price)
-            if(sharestobuy<=0){
-                throw new Error("not enough total to buy shares")
-            }
-            if(sharestobuy>stock.shares){
-                throw new Error("not enough shares available")
-            }
-            const newprice=stock.price+(sharestobuy*0.1)
-            await tx.stock.update({
-                where:{
-                    id:stock.id
-                },
-                data:{
-                    shares:{
-                        decrement:sharestobuy
-                    },
-                    price:newprice
-                }
-            })
-            await tx.priceHistory.create({
-                data:{
-                    stockId:stock.id,
-                    price:newprice,
-                    pagetype:data.stocktype
-                }
-            })
-            const actualtotal=sharestobuy*stock.price
-            const wallet=await tx.wallet.findUnique({
-                where:{
-                    userId:user.id
-                }
-            })
-            if(!wallet||wallet.balance<actualtotal){
-                throw new Error("insufficient balance")
-            }
-            await tx.wallet.update({
-                where:{
-                    userId:user.id
-                },
-                data:{
-                    balance:{
-                        decrement:actualtotal
-                    }
-                }
-            })
-            let stockholder
-            const existingStockholder=await tx.stockholder.findUnique({
-                where:{
-                    userId_stockId:{
-                        userId:user.id,
-                        stockId:data.stockId
-                    }
-                }
-            })
-            if(existingStockholder){
-                const newtotalshares=existingStockholder.shares+sharestobuy
-                const newtotalcost=existingStockholder.shares*existingStockholder.averageprice+actualtotal
-                const newaverageprice=newtotalcost/newtotalshares
-                stockholder=await tx.stockholder.update({
-                    where:{
-                        id:existingStockholder.id
-                    },
-                    data:{
-                        shares:newtotalshares,
-                        averageprice:newaverageprice
-                    }
-                })
-            }
-            else{
-                stockholder=await tx.stockholder.create({
-                    data:{
-                        pagetype:data.stocktype,
-                        userId:user.id,
-                        playerId:data.playerId||null,
-                        teamId:data.teamId||null,
-                        shares:sharestobuy,
-                        averageprice:stock.price,
-                        stockId:data.stockId
-                    }
-                })
-            }
-            const transaction=await tx.stockTransaction.create({
-                data: {
-                    pagetype:data.stocktype,
-                    userId:user.id,
-                    playerId:data.playerId||null,
-                    teamId:data.teamId||null,
-                    type:"buy",
-                    price:stock.price,
-                    shares:sharestobuy,
-                    total:actualtotal,
-                    stockholderId:stockholder.id,
-                    stockId:data.stockId
-                }
-            })
-            return transaction
+        const stock=await prisma.stock.findUnique({
+            where:{id:data.stockId}
         })
-
-        await producer.connect()
-        await producer.send({
-            topic:'stock',
-            messages:[{
-                key:transaction.id,
-                value:JSON.stringify({
-                    ...transaction,
-                    stocktype: data.stocktype
-                })
-            }]
+        if(!stock){
+            return res.status(400).json({error:"no stock"})
+        }
+        const sharestobuy=Math.floor(data.total/stock.price)
+        if(sharestobuy<=0){
+            return res.status(400).json({error:"not enough total to buy shares"})
+        }
+        if(sharestobuy>stock.shares){
+            return res.status(400).json({error:"not enough shares available"})
+        }
+        const actualtotal=sharestobuy*stock.price
+        const wallet=await prisma.wallet.findUnique({
+            where:{userId:user.id}
         })
-        await producer.disconnect()
-        io.to(userId).emit('notification',{
-            message:`Bought ${transaction.shares} shares at ₹${parseFloat(transaction.price).toFixed(2)}`
+        if(!wallet||wallet.balance<actualtotal){
+            return res.status(400).json({error:"insufficient balance"})
+        }
+        await sendKafkaMessage('stock-trade',data.stockId,{
+            ...data,
+            userId
         })
-        return res.json(transaction)
+        return res.status(202).json({queued:true})
 }
 catch(e){
     res.status(400).json({error:e.message})
 }
 }
+
 const sellTransaction=async(req,res)=>{
     try{
         const userId=req.userId
@@ -164,119 +64,36 @@ const sellTransaction=async(req,res)=>{
         if(data.type!=="sell"){
             return res.status(400).json({error:"only sell transaction"})
         }
-        const transaction = await prisma.$transaction(async (tx) => {
-            const stockholder=await tx.stockholder.findUnique({
-                where:{
-                    userId_stockId:{
-                        userId:user.id,
-                        stockId:data.stockId
-                    }
-                }
-            })
-            if(!stockholder){
-                throw new Error("no stockholder")
-            }
-            
-            if(stockholder.shares<data.shares){
-                throw new Error("not enough shares")
-            }
-            const stock=await tx.stock.findUnique({
-                where:{
-                    id:data.stockId
-                }
-            })
-            if(!stock){
-                throw new Error("stock not found")
-            }
-            let newprice=stock.price-(data.shares*0.1)
-            if(newprice<1)newprice=1
-            await tx.stock.update({
-                where:{
-                    id:stock.id
-                },
-                data:{
-                    shares:{
-                        increment:data.shares
-                    },
-                    price:newprice
-                }
-            })
-            await tx.priceHistory.create({
-                data:{
-                    stockId:stock.id,
-                    price:newprice,
-                    pagetype:stock.pagetype
-                }
-            })
-            const sellvalue=data.shares*stock.price
-            const newtotalshares=stockholder.shares-data.shares
-            let newavgprice=stockholder.averageprice
-            // average price remains the same when selling
-            const updatedstockholderId=await tx.stockholder.update({
-                where:{
-                    id:stockholder.id
-                },
-                data:{
-                    shares:newtotalshares,
-                    averageprice:newavgprice
-                }
-            })
-
-            const transaction=await tx.stockTransaction.create({
-                data:{
-                    pagetype:data.stocktype,
+        const sharesToSell=parseInt(data.shares)
+        if(!sharesToSell||isNaN(sharesToSell)||sharesToSell<=0){
+            return res.status(400).json({error:"invalid shares"})
+        }
+        const stockholder=await prisma.stockholder.findUnique({
+            where:{
+                userId_stockId:{
                     userId:user.id,
-                    playerId:data.playerId||null,
-                    teamId:data.teamId||null,
-                    type:"sell",
-                    price:stock.price,
-                    shares:data.shares,
-                    total:sellvalue,
-                    stockholderId:stockholder.id,
-                    stockId:data.stockId,
+                    stockId:data.stockId
                 }
-            })
-
-            await tx.wallet.update({
-                where:{userId:user.id},
-                data:{
-                    balance:{
-                        increment:sellvalue
-                    }
-                }
-            })
-            
-            if(newtotalshares===0){
-                await tx.stockholder.delete({
-                    where:{
-                        id:updatedstockholderId.id
-                    }
-                })
             }
-            return transaction
         })
-        
-        await producer.connect()
-        await producer.send({
-            topic:'stock',
-            messages:[{
-                key:transaction.id,
-                value:JSON.stringify({
-                    ...transaction,
-                    stocktype:data.stocktype
-                })
-            }]
+        if(!stockholder){
+            return res.status(400).json({error:"no stockholder"})
+        }
+        if(stockholder.shares<sharesToSell){
+            return res.status(400).json({error:"not enough shares"})
+        }
+        await sendKafkaMessage('stock-trade',data.stockId,{
+            ...data,
+            userId,
+            sharesToSell
         })
-        await producer.disconnect()
-        io.to(userId).emit('notification',{
-            message:`Sold ${transaction.shares} shares at ₹${parseFloat(transaction.price).toFixed(2)}`
-        })
-        return res.json(transaction)
+        return res.status(202).json({queued:true})
     }
     catch(e){
         return res.status(400).json({error:e.message})
     }
 }
+
 const getuserPortfolio=async(req,res)=>{
     try{
 const userId=req.userId
@@ -303,6 +120,7 @@ return res.json({stockholders})
         return res.status(400).json({error:e.message})
     }
 }
+
 const getStockholders=async(req,res)=>{
     try{
 const userId=req.userId
@@ -329,6 +147,7 @@ return res.json({stockholders})
         return res.status(400).json({error:e.message})
     }
 }
+
 const searchStock=async(req,res)=>{
     try{
 const query=req.query.q
@@ -420,6 +239,7 @@ return res.json(transcounts)
         return res.status(400).json({error:e.message})
     }
 }
+
 export const getStockholder=async(req,res)=>{
     try{
        const userId=req.userId

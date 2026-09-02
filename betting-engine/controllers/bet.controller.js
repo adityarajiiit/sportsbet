@@ -1,10 +1,9 @@
 import dotenv from 'dotenv'
 dotenv.config({ path: '../../.env' })
-import { PrismaClient } from "@prisma/client"
+import prisma from '../utils/prisma.js'
 import { inngest } from '../inngest/inngest.js'
-const prisma = new PrismaClient()
-import { producer } from "../utils/kafka.js/producer.js";
-import { io } from "../index.js";
+import { sendKafkaMessage } from "../utils/kafka.js/producer.js"
+import { io } from "../index.js"
 const newBet = async (req, res) => {
     try {
         const userId = req.userId
@@ -74,21 +73,11 @@ const newBet = async (req, res) => {
             return res.status(400).json({ error: "bet not created" })
         }
 
-        await producer.connect()
-        const result = await producer.send({
-            topic: 'betting',
-            messages: [
-                {
-                    key: bet.id,
-                    value: JSON.stringify(bet)
-                }
-            ]
-        })
+        await sendKafkaMessage('betting',bet.id,bet)
         await inngest.send({
             name: "bet.alerts",
             data: bet
         })
-        await producer.disconnect()
 
         return res.json({ bet })
 
@@ -273,16 +262,11 @@ const modifyBet = async (req, res) => {
         if (!bet) {
             return res.status(400).json({ error: "bet not updated" })
         }
-        await producer.connect()
-        await producer.send({
-            topic: 'betting',
-            messages: [{ key: bet.id, value: JSON.stringify(bet) }]
-        })
+        await sendKafkaMessage('betting',bet.id,bet)
         await inngest.send({
             name: "bet.alerts",
             data: bet
         })
-        await producer.disconnect()
         return res.json({ bet })
     }
     catch (e) {
@@ -303,7 +287,7 @@ const sellBet = async (req, res) => {
         }
         const soldbet = await prisma.$transaction(async (tx) => {
             const currentBet = await tx.bet.findUnique({
-                where: { id: betId }
+                where: { id: betId, userId: user.id }
             })
             if (!currentBet || currentBet.status !== "pending" || currentBet.issold) {
                 throw new Error("cannot sell this bet")
@@ -340,16 +324,11 @@ const sellBet = async (req, res) => {
         if (!soldbet) {
             return res.status(400).json({ error: "bet not sold" })
         }
-        await producer.connect()
-        await producer.send({
-            topic: 'betting',
-            messages: [{ key: soldbet.id, value: JSON.stringify(soldbet) }]
-        })
+        await sendKafkaMessage('betting',soldbet.id,soldbet)
         await inngest.send({
             name: "bet.alerts",
             data: soldbet
         })
-        await producer.disconnect()
         io.to(userId).emit('notification',{
             message:`Your bet cashout of ₹${soldbet.result?.price} was successful`
         })
@@ -370,6 +349,9 @@ const betOutcome = async (req, res) => {
         })
         if (!user) {
             return res.status(400).json({ error: "not a user" })
+        }
+        if (user.role !== "Admin") {
+            return res.status(403).json({ error: "not authorized" })
         }
         const betId = req.params.id
         const result = req.body.result
@@ -406,12 +388,7 @@ const betOutcome = async (req, res) => {
         if (!bet) {
             return res.status(400).json({ error: "bet not updated" })
         }
-        await producer.connect()
-        await producer.send({
-            topic: 'betting',
-            messages: [{ key: bet.id, value: JSON.stringify(bet) }]
-        })
-        await producer.disconnect()
+        await sendKafkaMessage('betting',bet.id,bet)
         io.to(bet.userId).emit('notification',{
             message:`Your bet on ${bet.match?.title||"match"} ${result==="won"?"won":"lost"}`
         })

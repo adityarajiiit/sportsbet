@@ -401,7 +401,7 @@ function SportSection() {
             <Image
               src={sport.image}
               alt={sport.title}
-              className="object-cover h-full w-96 rounded-2xl"
+              className="object-cover h-full w-full rounded-2xl"
             />
             <div className="absolute top-0 left-0 h-full w-full bg-black/30 rounded-2xl flex justify-center items-center">
               <p className="text-2xl font-bold font-poppins text-white">

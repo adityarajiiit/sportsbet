@@ -1,6 +1,7 @@
 "use client"
 import React,{useEffect,useRef,useState} from "react"
 import axios from "axios"
+import { createChart, CrosshairMode, CandlestickSeries } from "lightweight-charts"
 
 const timeframes=[
   {label:"1H",value:"1H"},
@@ -26,9 +27,19 @@ const PriceHistoryGraph=({stockId})=>{
       "1W":7*24*60*60*1000,
       "1M":30*24*60*60*1000
     }
+    const rangeMap={
+      "1H":24*60*60*1000,
+      "1D":7*24*60*60*1000,
+      "1W":30*24*60*60*1000,
+      "1M":180*24*60*60*1000
+    }
     const interval=msMap[tf]||msMap["1D"]
+    const range=rangeMap[tf]||rangeMap["1D"]
+    const now=Date.now()
+    const filtered=history.filter(item=>now-new Date(item.createdAt).getTime()<=range)
+    const source=filtered.length>0?filtered:history
     const buckets={}
-    history.forEach(item=>{
+    source.forEach(item=>{
       const t=new Date(item.createdAt).getTime()
       const bucket=Math.floor(t/interval)*interval
       if(!buckets[bucket]){
@@ -57,7 +68,7 @@ const PriceHistoryGraph=({stockId})=>{
     setLoading(true)
     try{
       const response=await axios.get(
-        `${process.env.NEXT_PUBLIC_API_URL||"http://localhost:4000"}/api/stocks/pricehistory?stockId=${stockId}`
+        `/api-backend/api/stocks/pricehistory?stockId=${stockId}`
       )
       const history=response.data.history||[]
       const candles=buildCandles(history,tf)
@@ -81,7 +92,6 @@ const PriceHistoryGraph=({stockId})=>{
   useEffect(()=>{
     let chart=null
     const init=async()=>{
-      const {createChart,CrosshairMode}=await import("lightweight-charts")
       if(!chartContainerRef.current) return
       chart=createChart(chartContainerRef.current,{
         width:chartContainerRef.current.clientWidth,
@@ -106,7 +116,7 @@ const PriceHistoryGraph=({stockId})=>{
           secondsVisible:false
         }
       })
-      const candleSeries=chart.addCandlestickSeries({
+      const candleSeries=chart.addSeries(CandlestickSeries, {
         upColor:"#22c55e",
         downColor:"#ef4444",
         borderUpColor:"#22c55e",

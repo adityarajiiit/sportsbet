@@ -98,7 +98,7 @@ function LiveEvent() {
   ]);
   useEffect(() => {
     const socket = io(
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
+       (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://sportsbet-betting.onrender.com') ,
     );
     socket.on("connect", () => {
       console.log("connected to socket server");
@@ -165,7 +165,7 @@ function LiveEvent() {
 
   const fetchLiveMatches = async () => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/livematches`,
+      `/api-backend/api/others/livematches`,
     );
     console.log(response.data);
     const matches = response.data.matches.map((match) => ({
@@ -192,7 +192,7 @@ function LiveEvent() {
   };
   const fetchUpcomingMatches = async () => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/upcomingmatches`,
+      `/api-backend/api/others/upcomingmatches`,
     );
     const matches = response.data.matches.map((match) => ({
       title: match.title,
@@ -219,7 +219,7 @@ function LiveEvent() {
   };
   const fetchRecentMatches = async () => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/recentmatches`,
+      `/api-backend/api/others/recentmatches`,
     );
     const matches = response.data.matches.map((match) => ({
       title: match.title,
@@ -269,7 +269,7 @@ function LiveEvent() {
           <h1 className=" text-3xl font-inter font-black uppercase">
             Current <span className="text-warning">Events</span>
           </h1>
-          <p className="font-inter  font-normal text-neutral-300 text-sm w-sm md:w-md lg:w-lg">
+          <p className="font-inter  font-normal text-neutral-300 text-sm max-w-sm md:max-w-md lg:max-w-lg w-full">
             Stay updated with live schedules.
           </p>
         </div>

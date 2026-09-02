@@ -4,9 +4,10 @@ import axios from "axios";
 export const useUserStore=create((set)=>({
   user:null,
   walletBalance:0,
+  remindedMatchIds:new Set(),
   refreshUser:async()=>{
     try{
-      const response=await axios.get(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getuser`,{
+      const response=await axios.get(`/api-backend/api/others/getuser`,{
         withCredentials:true
       })
       set({
@@ -16,5 +17,13 @@ export const useUserStore=create((set)=>({
     }catch(e){
       set({user:null,walletBalance:0})
     }
-  }
+  },
+  fetchReminders:async()=>{
+    try{
+      const res=await axios.get(`/api-backend/api/reminders/reminders`,{withCredentials:true})
+      const ids=new Set(res.data?.reminders?.filter(r=>r.status==="pending"&&r.matchId).map(r=>r.matchId))
+      set({remindedMatchIds:ids})
+    }catch(e){}
+  },
+  addRemindedMatch:(matchId)=>set(s=>({remindedMatchIds:new Set([...s.remindedMatchIds,matchId])}))
 }))

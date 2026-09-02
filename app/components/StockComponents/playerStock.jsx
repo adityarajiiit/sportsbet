@@ -16,7 +16,6 @@ import bar from "@/public/bar.jpg";
 import volume from "@/public/volume.png";
 import PlayerStats from "./Stats/PlayerStats";
 import PriceHistoryGraph from "./PriceHistoryGraph";
-import StockPredict from "@/app/components/ai/StockPredict";
 import io from "socket.io-client";
 import CommentSection from "@/components/blocks/ChatComponents/CommentSection";
 import axios from "axios";
@@ -24,6 +23,7 @@ import { useUserStore } from "@/app/store/useUserStore.jsx";
 import { toast } from "sonner";
 import PlayerTradeControls from "@/components/blocks/stockDialogs/Playertradecontrols";
 import Loading from "@/app/loading";
+const apiurl='/api-backend'
 function PlayerStock({ player }) {
   const [socket, setSocket] = useState(null);
   const session = useSession();
@@ -61,21 +61,17 @@ function PlayerStock({ player }) {
   }, [StopLossPrice]);
   const getComments = async () => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/comments/getcomments`,
+      `${apiurl}/api/comments/getcomments`,
       {
         params: {
           pagetype: "player",
           playerId: player.id,
           parentcommentId: null,
         },
-      },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
+      }
     );
     const result = response.data;
+    if(!Array.isArray(result)) return
     const allcomments = result.map((comment) => {
       return {
         author: comment.user.name,
@@ -126,8 +122,22 @@ function PlayerStock({ player }) {
         shares: parseInt(shares),
         total: parseFloat(total),
       };
+      if (buyStopLoss && Number(StopLossPriceRef.current) <= 0) {
+        toast.error("Stop loss must be greater than 0");
+        return;
+      }
+      if (buyTakeProfit && Number(ExitPriceRef.current) <= 0) {
+        toast.error("Take profit must be greater than 0");
+        return;
+      }
+      if (buyStopLoss && buyTakeProfit) {
+        if (Number(StopLossPriceRef.current) >= Number(ExitPriceRef.current)) {
+          toast.error("Stop loss should be less than take profit");
+          return;
+        }
+      }
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/newtrans`,
+        `${apiurl}/api/stocks/newtrans`,
         data,
         {
           headers: {
@@ -144,10 +154,10 @@ function PlayerStock({ player }) {
         response.data?.stockholderId ||
         response.data?.transaction?.stockholderId;
       if (buyStopLoss) {
-        setStopLoss("buy", stockholderId);
+        await setStopLoss("buy", stockholderId);
       }
       if (buyTakeProfit) {
-        setTakeprofit("buy", stockholderId);
+        await setTakeprofit("buy", stockholderId);
       }
       console.log(response.data);
       toast.success(
@@ -157,13 +167,17 @@ function PlayerStock({ player }) {
       getStockholder();
       document.getElementById("Buy_stock").close();
       setnoOfStocks(0);
+      setBuyTakeProfit(false);
+      setBuyStopLoss(false);
+      setExitPrice(0);
+      setStopLossPrice(0);
     } catch (e) {
       toast.error(e.message);
     }
   };
   const getStockholder = async () => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/stockholder`,
+      `${apiurl}/api/stocks/stockholder`,
       {
         params: {
           stockId: player.stock[0]?.id,
@@ -205,8 +219,22 @@ function PlayerStock({ player }) {
         total: parseFloat(total),
       };
 
+      if (sellStopLoss && Number(StopLossPriceRef.current) <= 0) {
+        toast.error("Stop loss must be greater than 0");
+        return;
+      }
+      if (sellTakeProfit && Number(ExitPriceRef.current) <= 0) {
+        toast.error("Take profit must be greater than 0");
+        return;
+      }
+      if (sellStopLoss && sellTakeProfit) {
+        if (Number(StopLossPriceRef.current) >= Number(ExitPriceRef.current)) {
+          toast.error("Stop loss should be less than take profit");
+          return;
+        }
+      }
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/stocks/selltrans`,
+        `${apiurl}/api/stocks/selltrans`,
         data,
         {
           headers: {
@@ -231,11 +259,15 @@ function PlayerStock({ player }) {
         response.data?.stockholderId ||
         response.data?.transaction?.stockholderId;
       if (sellStopLoss) {
-        setStopLoss("sell", stockholderId);
+        await setStopLoss("sell", stockholderId);
       }
       if (sellTakeProfit) {
-        setTakeprofit("sell", stockholderId);
+        await setTakeprofit("sell", stockholderId);
       }
+      setSellTakeProfit(false);
+      setSellStopLoss(false);
+      setExitPrice(0);
+      setStopLossPrice(0);
     } catch (e) {
       toast.error(e.message);
     }
@@ -251,11 +283,11 @@ function PlayerStock({ player }) {
       condition: {
         type: "sl",
         order: type,
-        value: StopLossPriceRef.current,
+        value: Number(StopLossPriceRef.current),
       },
     };
     const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,
+      `${apiurl}/api/alerts/newalert`,
       data,
       {
         headers: {
@@ -277,11 +309,11 @@ function PlayerStock({ player }) {
       condition: {
         type: "tp",
         order: type,
-        value: ExitPriceRef.current,
+        value: Number(ExitPriceRef.current),
       },
     };
     const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/alerts/newalert`,
+      `${apiurl}/api/alerts/newalert`,
       data,
       {
         headers: {
@@ -294,7 +326,7 @@ function PlayerStock({ player }) {
   };
   const getPlayer = async () => {
     const response = await axios.get(
-      `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000"}/api/others/getplayer`,
+      `${apiurl}/api/others/getplayer`,
       {
         params: {
           id: player.id,
@@ -313,7 +345,7 @@ function PlayerStock({ player }) {
   useEffect(() => {
     setIsLoading(true);
     const socketInstance = io(
-      process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
+       (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://sportsbet-betting.onrender.com') ,
     );
     setSocket(socketInstance);
     socketInstance.on("connect", () => {
@@ -386,7 +418,7 @@ function PlayerStock({ player }) {
   const items = [
     {
       title: "Market Price",
-      description: playerStock.price.toFixed(3),
+      description: Number(playerStock.price || 0).toFixed(2),
       icon: (
         <IoMdPricetags className="size-8 text-warning p-2 bg-warning/15 rounded-full" />
       ),
@@ -403,7 +435,7 @@ function PlayerStock({ player }) {
     },
     {
       title: "Market Capital",
-      description: playerStock.marketCapital.toFixed(3),
+      description: Number(playerStock.marketCapital || 0).toFixed(2),
       icon: (
         <TrendingUp className="size-8 text-warning p-2 bg-warning/15 rounded-full" />
       ),
@@ -411,7 +443,7 @@ function PlayerStock({ player }) {
     },
     {
       title: "Price Change (1D)",
-      description: playerStock.PriceChange.toFixed(3),
+      description: Number(playerStock.PriceChange || 0).toFixed(2),
       icon: (
         <TbCoinRupeeFilled className="size-8 text-warning p-2 bg-warning/15 rounded-full" />
       ),
@@ -470,6 +502,10 @@ function PlayerStock({ player }) {
               setExitPrice={setExitPrice}
               StopLossPrice={StopLossPrice}
               setStopLossPrice={setStopLossPrice}
+              buyTakeProfit={buyTakeProfit}
+              buyStopLoss={buyStopLoss}
+              sellTakeProfit={sellTakeProfit}
+              sellStopLoss={sellStopLoss}
               setBuyTakeProfit={setBuyTakeProfit}
               setBuyStopLoss={setBuyStopLoss}
               setSellTakeProfit={setSellTakeProfit}
@@ -565,7 +601,6 @@ function PlayerStock({ player }) {
         <PriceHistoryGraph stockId={player.stock?.[0]?.id} />
         <PlayerStats player={player} />
       </div>
-      <StockPredict stockId={player.stock?.[0]?.id}/>
       <div className="h-full w-full border border-base-content/10 rounded-xl mt-6 flex flex-col">
         <div className="p-3 border-b border-base-content/10">
           <p className="font-poppins text-sm font-semibold">Comments()</p>

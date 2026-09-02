@@ -2,9 +2,11 @@
 export default function ExitStrategyFieldset({
   exitPrice,
   onExitPriceChange,
+  takeProfitChecked,
   onTakeProfitToggle,
   stopLossPrice,
   onStopLossPriceChange,
+  stopLossChecked,
   onStopLossToggle,
   theme = "info",
 }) {
@@ -16,6 +18,7 @@ export default function ExitStrategyFieldset({
         <input
           type="checkbox"
           className="checkbox"
+          checked={takeProfitChecked || false}
           onChange={(e) => onTakeProfitToggle(e.target.checked)}
         />
         Take Profit
@@ -37,6 +40,7 @@ export default function ExitStrategyFieldset({
         <input
           type="checkbox"
           className="checkbox"
+          checked={stopLossChecked || false}
           onChange={(e) => onStopLossToggle(e.target.checked)}
         />
         Stop Loss
