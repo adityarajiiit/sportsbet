@@ -1,6 +1,6 @@
 from langchain_cerebras import ChatCerebras
 from langchain_core.prompts import ChatPromptTemplate
-from tools.mongodbtools import fetchStock,fetchStockPriceHistory,fetchPlayer,fetchTeam
+from tools.mongodbtools import fetchStock,fetchPlayer,fetchTeam
 from tools.analytics import allprint
 from rag.retriever import retrieveChunks
 from config.settings import settings
@@ -17,9 +17,6 @@ ENTITY DATA (Player/Team):
 
 TECHNICAL ANALYSIS:
 {technical}
-
-PRICE HISTORY (recent):
-{price_history}
 
 RELEVANT NEWS:
 {rag_context}
@@ -61,12 +58,8 @@ async def stockPredictor(state):
             ptData=await fetchPlayer(str(stock["playerId"])) or {}
         elif stock.get("teamId"):
             ptData=await fetchTeam(str(stock["teamId"])) or {}
-    priceHistory=[]
     prices=[]
-    if stockId:
-        priceHistory=await fetchStockPriceHistory(stockId,days=30)
-        prices=[h.get("price",0) for h in priceHistory if h.get("price")]
-    technical=allprint(prices) if prices else {"signal":"neutral","confidence":0}
+    technical={"signal":"neutral","confidence":0}
     name=ptData.get("name","") or stockData.get("name","")
     chunks=await retrieveChunks(f"{name} cricket performance",topK=3)
     llm=ChatCerebras(
@@ -83,7 +76,6 @@ async def stockPredictor(state):
             "stock_data":json.dumps(stockData,default=str)[:1000],
             "entity_data":json.dumps(ptData,default=str)[:1000],
             "technical":json.dumps(technical,default=str)[:1000],
-            "price_history":json.dumps(prices[-30:],default=str),
             "rag_context":"\n".join(chunks)[:1500]
         })
         content = "".join(item.get("text", "") if isinstance(item, dict) else str(item) for item in result.content).strip() if isinstance(result.content, list) else result.content.strip()

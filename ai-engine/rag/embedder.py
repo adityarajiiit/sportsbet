@@ -1,4 +1,4 @@
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_cohere import CohereEmbeddings
 
 from config.settings import settings
 _embedder=None
@@ -6,8 +6,9 @@ _embedder=None
 def get_embedder():
     global _embedder
     if _embedder is None:
-        _embedder=HuggingFaceEmbeddings(
-            model_name="all-MiniLM-L6-v2"
+        _embedder=CohereEmbeddings(
+            cohere_api_key=settings.COHERE_API_KEY,
+            model="embed-english-v3.0"
         )
     return _embedder
 

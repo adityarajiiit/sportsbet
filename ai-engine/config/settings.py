@@ -16,17 +16,18 @@ class Settings(BaseSettings):
     GEMINI_MODEL:str=""
     CEREBRAS_API_KEY:str=""
     CEREBRAS_MODEL:str="gpt-oss-120b"
+    COHERE_API_KEY:str=""
     EMBEDDING_MODEL:str=""
     LANGCHAIN_TRACING_V2:bool=True
     LANGCHAIN_API_KEY:str=""
     LANGCHAIN_PROJECT:str="sportsbet"
-    FRONTEND_URL:str="http://localhost:3000"
-    BACKEND_URL:str="http://localhost:4000"
-    AIENGINE_URL:str="http://localhost:8000"
+    FRONTEND_URL:str
+    BACKEND_URL:str
+    AIENGINE_URL:str
     SCRAPE_INTERVAL:int=60
     RATELIMIT_INTERVAL:int=60
     INSIGHT_CACHE_TTL:int=1800
     STOCK_CACHE_TTL:int=300
-    EMBEDDING_DIMENSION:int=384
+    EMBEDDING_DIMENSION:int=1024
     
 settings=Settings()

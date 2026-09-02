@@ -10,7 +10,8 @@ async def newQdrant():
     try:
         _client=AsyncQdrantClient(
             url=settings.QDRANT_HOST,
-            api_key=settings.QDRANT_API_KEY
+            api_key=settings.QDRANT_API_KEY,
+            port=443
         )
         collections=await _client.get_collections()
         logger.info(f"connected to Qdrant collections: {collections}")

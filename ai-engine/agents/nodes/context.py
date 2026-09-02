@@ -6,7 +6,6 @@ from tools.mongodbtools import(
     fetchMatch,
     fetchMatchOdds,
     fetchStock,
-    fetchStockPriceHistory,
     fetchLiveMatches,
     fetchUpcomingMatches,
     lookupMatchByCricbuzzId,
@@ -103,12 +102,6 @@ async def contextAdder(state):
         except Exception as e:
             logger.warning(f"stock fetch failed {e}")
             updates["ctx_stock_data"]={}
-        try:
-            priceHistory=await fetchStockPriceHistory(stockId,days=7)
-            updates["ctx_price_history"]=priceHistory or []
-        except Exception as e:
-            logger.warning(f"price history fetch failed {e}")
-            updates["ctx_price_history"]=[]
 
     try:
         live=await fetchLiveMatches()

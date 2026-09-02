@@ -1,18 +1,18 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
 python-dotenv
 pydantic
-FastAPI
+fastapi[standard]
 ipykernel
 pydantic_settings
 motor
 redis
 qdrant-client
-tensorflow
 langchain_google_genai
 langchain-text-splitters
 bs4
 apscheduler
 langgraph
-sentence-transformers
+langchain-cohere
 langchain-community
 langchain-cerebras
-playwright
+feedparser

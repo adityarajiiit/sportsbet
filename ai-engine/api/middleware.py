@@ -6,7 +6,7 @@ from config.settings import settings
 
 class rateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self,request,call_next):
-        if request.url.path.startswith("/api/v1/health"):
+        if request.url.path.startswith("/api/health"):
             return await call_next(request)
         userId=request.headers.get("X-User-Id",request.client.host if request.client else "anon")
         allowed=await rate_limit_check(userId,settings.RATELIMIT_INTERVAL)

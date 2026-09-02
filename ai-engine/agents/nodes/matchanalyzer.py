@@ -85,6 +85,11 @@ async def matchAnalyzer(state):
         team=await fetchTeam(str(tid))
         if team:
             teamData.append(team)
+    if not teamData and matchData.get("team1") and matchData.get("team2"):
+        teamData = [
+            {"name": matchData["team1"].get("teamName"), "id": matchData["team1"].get("teamId")},
+            {"name": matchData["team2"].get("teamName"), "id": matchData["team2"].get("teamId")}
+        ]
     
     matchTitle=matchData.get("title","cricket match")
     ragChunks=state.get("rag_chunks",[])

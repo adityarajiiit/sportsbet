@@ -21,6 +21,8 @@ async def getAlerts(userId:str="",limit:int=20):
     alerts=[]
     async for a in cursor:
         a["_id"]=str(a["_id"])
+        if "matchId" in a and a["matchId"]:
+            a["matchId"]=str(a["matchId"])
         alerts.append(a)
     return{"success":True,"data":{"alerts":alerts},"error":""}
 

@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import uuid4
 from qdrant_client.models import PointStruct,VectorParams,Distance
 from rag.chunker import chunk_document
@@ -41,7 +41,7 @@ async def ingest_document(
 )->dict:
     content_hash=hashlib.md5(content.encode()).hexdigest()
     db=getDb()
-    existing=await db [COLL_SCRAPED_DOC].find_one({"contentHash":content_hash})
+    existing=await db [COLL_SCRAPED_DOC].find_one({"hash":content_hash})
     if existing:
         return{"status":"skipped","reason":"duplicate"}
     chunks=chunk_document(content,metadata={
@@ -84,12 +84,13 @@ async def ingest_document(
         "url":url,
         "title":title,
         "content":content,
-        "contentHash":content_hash,
+        "hash":content_hash,
         "category":category,
         "entities":entities or {},
         "vectorIds":vectorids,
         "isEmbedded":True,
         "scrapedAt":datetime.utcnow(),
+        "expiresAt":datetime.utcnow() + timedelta(days=7),
     })
     logger.info(f"ingested {title} with {len(chunks)} chunks")
     return {"status":"success","chunks":len(chunks)}

@@ -2,7 +2,6 @@ import express from 'express'
 import {createServer} from 'node:http'
 import {Server} from 'socket.io'
 import {serve} from 'inngest/express'
-import { isSpoofedBot } from "@arcjet/inspect";
 import dotenv from "dotenv"
 import adminRoutes from './routes/admin.routes.js'
 import alertRoutes from './routes/alert.routes.js'
@@ -14,27 +13,27 @@ import stockRoutes from './routes/stock.routes.js'
 import withdrawalRoutes from './routes/withdrawal.routes.js'
 dotenv.config({path:'../.env'})
 import { inngest,functions } from './inngest/inngest.js';
-import { arcjetMiddleware } from './middlewares/arcjet.middleware.js';
 import awsRoutes from './routes/aws.routes.js'
 import otherRoutes from './routes/other.routes.js'
 import cors from 'cors';
 import cron from 'node-cron'
 import { betsConsumer } from './utils/kafka.js/bet.consumer.js';
 import { matchfetch } from './utils/kafka.js/consumer.js';
-import { stockConsumer } from './utils/kafka.js/stock.consumer.js';
+import { stockConsumer,stockTradeConsumer } from './utils/kafka.js/stock.consumer.js';
 import { upcomingmatchesFetch,recentmatchesFetch,livematchesFetch } from './utils/kafka.js/matchfetch.js';
 import { settleMatchesWorker } from './utils/settlement.worker.js';
+import './utils/bullmqworker.js';
 import cryptoRoutes from './routes/crypto.routes.js';
 import {socketfunction} from './services/socket.js'
 import cookieParser from 'cookie-parser';
 import aiRoutes from './routes/ai.routes.js'
-import { fetchAllMatches } from './fetchmatches.js';
 const app=express()
+app.set('trust proxy',1)
 app.use(express.json())
 const server=createServer(app)
 const io=new Server(server,{
     cors:{
-        origin:"http://localhost:3000",
+        origin:process.env.FRONTEND_URL,
         methods:["GET","POST","PUT","DELETE","PATCH"],
         credentials:true
     }
@@ -43,14 +42,13 @@ socketfunction(io)
 betsConsumer()
 matchfetch()
 stockConsumer()
-// fetchAllMatches()
+stockTradeConsumer()
 
 app.use(cors({
-    origin:'http://localhost:3000',
+    origin:process.env.FRONTEND_URL,
     methods:['GET','POST','PUT','DELETE', 'PATCH'],
     credentials:true
 }));
-app.use(arcjetMiddleware)
 app.use(cookieParser())
 app.use(express.static('public'))
 app.use('/api/others',otherRoutes)
@@ -84,9 +82,9 @@ cron.schedule(`*/15 * * * *`,async()=>{
 })
 
 app.get('/',(req,res)=>{
-    res.sendFile('index.html')
+    res.send('betting engine')
 })
-const PORT=4000
+const PORT=process.env.PORT||4000
 server.listen(PORT,()=>{
     console.log('server running',PORT)
 })

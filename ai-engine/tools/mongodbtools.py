@@ -2,10 +2,10 @@ from bson import ObjectId
 from services.mongodb import getDb
 from config.constants import(
     COLL_MATCH,COLL_TEAM,COLL_PLAYER,COLL_STOCK,
-    COLL_STOCK_TRANSACTION,COLL_STOCKHOLDER,COLL_BET,
+    COLL_STOCKHOLDER,COLL_BET,
     COLL_MATCHBET,COLL_MATCHBET_OUTCOMES,COLL_ODDS_HISTORY,
-    COLL_PRICE_HISTORY,COLL_WALLET,COLL_USER,
-    COLL_AI_INSIGHT,COLL_CHAT_MESSAGE,COLL_NOTIFICATION,COLL_ALERT,
+    COLL_WALLET,COLL_USER,
+    COLL_AI_INSIGHT,COLL_CHAT_MESSAGE,COLL_NOTIFICATION,
 )
 from datetime import datetime,timedelta
 import logging
@@ -116,18 +116,7 @@ async def fetchStockByPlayer(playerId:str)->dict|None:
         stock["_id"]=str(stock["_id"])
     return stock
 
-async def fetchStockPriceHistory(stockId:str,days:int=30)->list[dict]:
-    db=getDb()
-    since=datetime.utcnow()-timedelta(days=days)
-    res=db[COLL_PRICE_HISTORY].find({
-        "stockId":oid(stockId),
-        "createdAt":{"$gte":since},
-    }).sort("createdAt",1)
-    history=[]
-    async for h in res:
-        h["_id"]=str(h["_id"])
-        history.append(h)
-    return history
+
 
 async def fetchUserProfile(userId:str)->dict|None:
     db=getDb()
