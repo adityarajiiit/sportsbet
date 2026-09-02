@@ -2,7 +2,6 @@
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { themes } from "@/app/constants/themes";
-import { LoaderOne, LoaderFour } from "@/components/ui/loader";
 import { useThemeStore } from "@/app/store/useThemestore.jsx";
 import { Tabs } from "@/components/ui/tab";
 import axios from "axios";
@@ -148,8 +147,8 @@ const Dashboard = () => {
       ),
     },
     {
-      title: "Dashboard Overview",
-      value: "Dashboard Overview",
+      title: "Overview",
+      value: "Overview",
       content: <DashboardOverview user={user} />,
     },
   ];
@@ -157,7 +156,7 @@ const Dashboard = () => {
   return (
     <div className="pt-20 p-4">
       <ProfileHeader user={user} />
-      <div className="h-[45rem] [perspective:1000px] relative flex flex-col max-w-7xl mx-auto w-full items-start justify-start p-5">
+      <div className="h-[45rem] [perspective:1000px] relative flex flex-col max-w-7xl w-full items-start justify-start mt-4">
         <Tabs tabs={tabs} />
       </div>
     </div>

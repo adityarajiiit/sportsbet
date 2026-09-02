@@ -9,10 +9,6 @@ import { HoverBorderGradient } from "@/components/ui/bg-gradient";
 import { FaHourglassStart, FaHourglassEnd } from "react-icons/fa";
 import { useSelectedEvent } from "@/app/store/useSelectedEvent";
 import { useAiContext } from "@/app/store/useAiContext";
-import { Label, PolarRadiusAxis, RadialBar, RadialBarChart } from "recharts";
-import { FaReply } from "react-icons/fa";
-import { MdCancel } from "react-icons/md";
-import { motion, AnimatePresence } from "motion/react";
 import { useSession } from "next-auth/react";
 import { io } from "socket.io-client";
 import axios from "axios";
@@ -23,17 +19,12 @@ import BettingControls from "@/components/blocks/BetComponents/BettingControls";
 import WinPredictionChart from "@/app/(site)/event/score/components/matrix.jsx";
 import { TbShirtSport } from "react-icons/tb";
 import Loading from "@/app/loading";
-
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import MatchInsight from "@/app/components/ai/MatchInsight"
+import MatchInsight from "@/app/components/ai/MatchInsight";
 import BetAdvisor from "@/app/components/ai/BetAdvisor";
 
-function EventScore({params}) {
-  params=use(params)
+function EventScore({ params }) {
+  params = use(params);
+
   const [buyamount, setBuyAmount] = useState(0);
   const [buyamount2, setBuyAmount2] = useState(0);
   const [ExitPrice, setExitPrice] = useState(0);
@@ -46,22 +37,27 @@ function EventScore({params}) {
   const [socket, setSocket] = useState(null);
   const [matchbets, setMatchbets] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+
   const session = useSession();
   const { refreshUser, walletBalance } = useUserStore();
+  const { selectedEvent } = useSelectedEvent();
+  const { setMatchContext, clearContext } = useAiContext();
+  const event = selectedEvent;
 
-  const {setMatchContext,clearContext}=useAiContext()
-  useEffect(()=>{
-    
-    const socket=io( (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://sportsbet-betting.onrender.com') )
-    setSocket(socket)
-    socket.on("connect",()=>{
-      socket.emit("join-room",params.matchid)
-    })
-    socket.on("match-update",(data)=>{
-      console.log(data)
-      const matchinfo=data?.data?.matchInfo
-      const matchscore=data?.data?.matchScore
-      if(matchinfo?.matchId===params.matchid){
+  useEffect(() => {
+    const socket = io(
+      (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://sportsbet-betting.onrender.com'),
+    );
+    setSocket(socket);
+
+    socket.on("connect", () => {
+      socket.emit("join-room", params.matchid);
+    });
+
+    socket.on("match-update", (data) => {
+      const matchinfo = data?.data?.matchInfo;
+      const matchscore = data?.data?.matchScore;
+      if (matchinfo?.matchId === params.matchid) {
         setScore({
           start: new Date(matchinfo.startDate).toLocaleString(),
           end: new Date(matchinfo.endDate).toLocaleString(),
@@ -83,6 +79,7 @@ function EventScore({params}) {
         });
       }
     });
+
     socket.on("comment-added", (data) => {
       const receivedcomment = {
         author: data.name,
@@ -113,6 +110,7 @@ function EventScore({params}) {
         });
       }
     });
+
     socket.on("betting-update", (data) => {
       const oddsandamount = data.map((outcome) => ({
         id: outcome.teamId,
@@ -150,40 +148,44 @@ function EventScore({params}) {
     };
   }, [params.matchid]);
 
-
-  useEffect(()=>{
-    if(score.matchId){
+  useEffect(() => {
+    if (score.matchId) {
       setMatchContext(
         score.matchId,
         {
-          team1:score.team1,
-          team2:score.team2,
-          score1:score.score1,
-          score2:score.score2,
-          status:score.status,
-          matchState:score.matchstate,
-          stadium:score.stadium,
-          series:score.series,
+          team1: score.team1,
+          team2: score.team2,
+          score1: score.score1,
+          score2: score.score2,
+          status: score.status,
+          matchState: score.matchstate,
+          stadium: score.stadium,
+          series: score.series,
         },
-        matchbets.map(b=>({teamname:b.name,odds:b.odds,amount:b.amount})),
-        {score1:score.score1,score2:score.score2,status:score.status}
-      )
+        matchbets.map((b) => ({
+          teamname: b.name,
+          odds: b.odds,
+          amount: b.amount,
+        })),
+        { score1: score.score1, score2: score.score2, status: score.status },
+      );
     }
-    return()=>{clearContext()}
-  },[score.matchId])
+    return () => clearContext();
+  }, [score, matchbets]);
 
-  const getmatchId=async()=>{
-    const response=await axios.get(`/api-backend/api/others/getmatchid`,{
-      params:{
-        cricbuzzmatchId:params.matchid
-      }
-    })
-    setMatchid(response.data.matchId)
-  }
-  const fetchscore=async()=>{
-    const response=await axios.get(`/api-backend/api/others/match/${params.matchid}`)
-  
-    const data=response.data
+  const getmatchId = async () => {
+    const response = await axios.get(`/api-backend/api/others/getmatchid`, {
+      params: { cricbuzzmatchId: params.matchid },
+    });
+    setMatchid(response.data.matchId);
+    return response.data.matchId;
+  };
+
+  const fetchscore = async () => {
+    const response = await axios.get(
+      `/api-backend/api/others/match/${params.matchid}`,
+    );
+    const data = response.data;
     setScore({
       start: new Date(data.start).toLocaleString(),
       end: new Date(data.end).toLocaleString(),
@@ -215,7 +217,7 @@ function EventScore({params}) {
           matchId,
           parentcommentId: null,
         },
-      }
+      },
     );
     if(!Array.isArray(response.data)) return
     const allcomments = response.data.map((comment) => ({
@@ -249,7 +251,7 @@ function EventScore({params}) {
   const getMatchbets = async (matchId) => {
     const response = await axios.get(
       `/api-backend/api/others/getmatchbets`,
-      { params: { matchId } }
+      { params: { matchId } },
     );
     const matchbetoutcomes = response.data.matchbetoutcomes;
     const oddsandamount = matchbetoutcomes.map((outcome) => ({
@@ -262,10 +264,6 @@ function EventScore({params}) {
     }));
     setMatchbets(oddsandamount);
   };
-
-  if (isLoading) {
-    return <Loading />;
-  }
 
   const newBet = async (team) => {
     if (!session?.data?.user) {
@@ -355,6 +353,10 @@ function EventScore({params}) {
     );
   };
 
+  if (isLoading) {
+    return <Loading />;
+  }
+
   return (
     <div className="p-4 pt-24">
       <h1 className="uppercase font-inter text-2xl font-bold">
@@ -385,17 +387,17 @@ function EventScore({params}) {
           <Image
             src={ScoreCard}
             alt="score"
-            className="lg:w-5xl h-[16rem] sm:h-[20rem] absolute top-0 object-center"
+            className="lg:w-5xl h-[19rem] sm:h-[20rem] absolute top-0 object-center"
             width={1000}
             height={1000}
           />
-          <div className="flex flex-col sm:p-6 p-1 pt-7 sm:pt-12 w-full md:max-w-5xl gap-2 justify-between h-[14rem] sm:h-[18rem] z-1">
+          <div className="flex flex-col sm:p-6 p-1 pt-7 sm:pt-12 w-full md:max-w-5xl gap-2 justify-between h-[17rem] sm:h-[18rem] z-1">
             <div className="flex justify-between gap-4 items-center">
               <HoverBorderGradient className="bg-base-100 rounded-full p-1 px-4 w-full">
                 <p className="flex items-center gap-2 text-xs font-medium font-poppins text-center w-full">
                   <span className="flex items-center gap-1.5 font-semibold text-info">
                     <TbShirtSport className="size-3.5" />
-                    Match Name :
+                    Match :
                   </span>
                   <span className="font-bold">{score.series}</span>
                 </p>
@@ -412,8 +414,8 @@ function EventScore({params}) {
             </div>
 
             <div className="flex flex-col gap-2 -mt-1">
-              <div className="flex justify-between items-center gap-2 sm:gap-4">
-                <div className="flex items-center justify-between gap-4 w-full">
+              <div className="flex flex-col sm:flex-row justify-between items-center gap-2 sm:gap-4">
+                <div className="flex flex-row items-center justify-between gap-4 w-full">
                   <div className="flex gap-3 items-center justify-center">
                     <Image
                       src={cricket}
@@ -424,23 +426,23 @@ function EventScore({params}) {
                       {score.team1}
                     </span>
                   </div>
-                  <div className="p-1 px-1.5 sm:p-2 sm:px-3.5 backdrop-blur-lg rounded-xl flex items-center justify-center bg-[rgba(67,67,67,0.1)] shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]">
+                  <div className="p-1 px-1.5 sm:p-2 sm:px-3.5 backdrop-blur-lg rounded-xl flex items-center justify-center group bg-[rgba(67,67,67,0.1)] shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]">
                     <span className="text-xs sm:text-xl lg:text-2xl font-black font-inter line-clamp-1">
                       {score.score1}
                     </span>
                   </div>
                 </div>
-                <div className="flex flex-col justify-center items-center font-bold text-3xl font-goldman">
+                <div className="hidden sm:block font-bold text-3xl font-goldman">
                   :
                 </div>
                 <div className="flex items-center justify-between gap-4 w-full">
-                  <div className="p-1 px-1.5 sm:p-2 sm:px-3.5 backdrop-blur-lg rounded-xl flex items-center justify-center bg-[rgba(67,67,67,0.1)] shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]">
+                  <div className="hidden p-1 px-1.5 sm:p-2 sm:px-3.5 backdrop-blur-lg rounded-xl sm:flex items-center justify-center group bg-[rgba(67,67,67,0.1)] shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]">
                     <span className="text-xs sm:text-xl lg:text-2xl font-black font-inter line-clamp-1">
                       {score.score2}
                     </span>
                   </div>
                   <div className="flex gap-3 items-center justify-center">
-                    <span className="font-bold text-sm sm:text-xl font-inter">
+                    <span className="hidden sm:block font-bold text-sm sm:text-xl font-inter">
                       {score.team2}
                     </span>
                     <Image
@@ -448,6 +450,14 @@ function EventScore({params}) {
                       alt="team"
                       className="size-8 sm:size-12 rounded-full"
                     />
+                    <span className="sm:hidden font-bold text-sm sm:text-xl font-inter">
+                      {score.team2}
+                    </span>
+                  </div>
+                  <div className="sm:hidden p-1 px-1.5 sm:p-2 sm:px-3.5 backdrop-blur-lg rounded-xl flex items-center justify-center group bg-[rgba(67,67,67,0.1)] shadow-[0px_0px_1px_0px_rgba(248,248,248,0.4)_inset,0px_32px_24px_-16px_rgba(0,0,0,0.40)]">
+                    <span className="text-xs sm:text-xl lg:text-2xl font-black font-inter line-clamp-1">
+                      {score.score2}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -521,13 +531,12 @@ function EventScore({params}) {
           />
         </div>
       </div>
-      {score.matchId&&(
+      {score.matchId && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
           <MatchInsight matchId={score.matchId} />
           <BetAdvisor matchId={score.matchId} />
         </div>
       )}
-      
     </div>
   );
 }

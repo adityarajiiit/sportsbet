@@ -118,7 +118,6 @@ function Navbar() {
         ) : (
           <Link
             href="/login"
-            onClick={() => signIn()}
             className="px-6 py-3 rounded-full bg-[#b6e24e] font-bold text-base-100 tracking-widest uppercase transform hover:scale-102 hover:bg-[#FFB22C] transition-all duration-200 font-inter text-sm "
           >
             Log In
@@ -187,7 +186,6 @@ function Navbar() {
               <Link
                 className="flex justify-start items-center p-2 gap-1  font-medium font-poppins text-sm hover:bg-base-300 rounded-xs"
                 href="/login"
-                onClick={() => signIn()}
               >
                 <TbLogout className="stroke-2 size-4" />
                 Log In
