@@ -12,7 +12,7 @@ import { FaBell } from "react-icons/fa";
 import { Vortex } from "@/components/ui/vortex";
 import newsletter from "@/public/newsletter.png";
 import { HoverBorderGradient } from "@/components/ui/bg-gradient";
-import axios from "axios"
+import axios from "axios";
 export default function Home() {
   const { data: session } = useSession();
   const features = [
@@ -59,20 +59,16 @@ export default function Home() {
       description: " Never miss a game.",
     },
   ];
-  const getLiveMatches=async()=>{
-    try{
-        const response=await axios.get(``,{withCredentials:true})
-
+  const getLiveMatches = async () => {
+    try {
+      const response = await axios.get(``, { withCredentials: true });
+    } catch (e) {
+      console.log(e);
     }
-    catch(e){
-      console.log(e)
-    }
-  }
+  };
 
   return (
-    <div
-      className="flex flex-col justify-center items-center pt-10 md:pt-20 w-full overflow-hidden"
-    >
+    <div className="flex flex-col justify-center items-center pt-10 md:pt-20 w-full overflow-hidden">
       <div className="grid grid-cols-1 md:grid-cols-2 place-items-center  top-0 p-4 gap-4  h-full">
         <div className="flex flex-col justify-center items-center md:items-start p-4">
           <button className="bg-slate-800 no-underline group cursor-pointer relative shadow-2xl shadow-zinc-900 rounded-full p-px text-xs font-semibold leading-6  text-white inline-block mb-2">
@@ -101,21 +97,25 @@ export default function Home() {
             {session ? (
               <Link href="/dashboard">
                 <HoverBorderGradient
-                  containerClassName="rounded-full"
+                  containerClassName="rounded-full w-40"
                   as="button"
-                  className=" bg-base-100 text-white  flex items-center justify-center w-40 p-2.5 "
+                  className=" bg-base-100 text-white  flex items-center justify-center w-40 p-2.5"
                 >
-                  <span className="text-sm font-poppins font-medium">Explore Now</span>
+                  <span className="text-sm font-poppins font-medium">
+                    Explore Now
+                  </span>
                 </HoverBorderGradient>
               </Link>
             ) : (
               <Link href="/api/auth/signin">
                 <HoverBorderGradient
-                  containerClassName="rounded-full w-32 sm:w-40"
+                  containerClassName="rounded-full w-40"
                   as="button"
-                  className=" bg-base-100 text-white  flex items-center justify-center  p-2.5"
+                  className=" bg-base-100 text-white flex items-center justify-center  w-40 p-2.5"
                 >
-                  <span className="text-sm font-poppins font-medium ">Explore Now</span>
+                  <span className="text-sm font-poppins font-medium ">
+                    Explore Now
+                  </span>
                 </HoverBorderGradient>
               </Link>
             )}
@@ -166,7 +166,7 @@ export default function Home() {
                       >
                         <path
                           d="M34 0.5H254.053C261.718 0.500091 269.151 3.12937 275.112 7.94824L298.533 26.8809L318.616 45.2598C325.551 51.6058 329.5 60.5738 329.5 69.9736V288C329.5 306.502 314.502 321.5 296 321.5H34C15.4985 321.5 0.5 306.502 0.5 288V34C0.5 15.4985 15.4985 0.5 34 0.5Z"
-                          transform="scale(0.00303, 0.00311)" /* normalize to 0–1 */
+                          transform="scale(0.00303, 0.00311)"
                         />
                       </clipPath>
                     </defs>
@@ -242,8 +242,13 @@ export default function Home() {
             happenings,exclusive content,and behind the scene insights.
           </p>
           <div className="join w-11/12 sm:w-lg lg:w-xl flex justify-center mt-6">
-            <input className="input join-item rounded-l-full h-16 w-full focus:outline-0 px-4 font-goldman" placeholder="Write your email" />
-            <button className="btn join-item rounded-r-full h-16 bg-white text-base-300 font-goldman font-semibold">Subscribe</button>
+            <input
+              className="input join-item rounded-l-full h-16 w-full focus:outline-0 px-4 font-goldman"
+              placeholder="Write your email"
+            />
+            <button className="btn join-item rounded-r-full h-16 bg-white text-base-300 font-goldman font-semibold">
+              Subscribe
+            </button>
           </div>
         </div>
       </div>
