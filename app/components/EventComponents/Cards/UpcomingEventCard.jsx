@@ -19,7 +19,9 @@ function UpcomingEventCard({ title, team1, team2,  image1, image2, matchId,statu
       toast.error("Please login to set reminder")
       return
     }
-    if(notified) return
+    if(notified){
+      return
+    }
     setNotifying(true)
     try{
       const matchTime=new Date(date).getTime()

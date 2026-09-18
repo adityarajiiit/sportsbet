@@ -6,7 +6,14 @@ dotenv.config({ path: '../../.env' })
 import { PrismaClient } from "@prisma/client"
 
 const prisma = new PrismaClient()
-const connection = new Redis(process.env.REDIS_URI)
+const connection=new Redis(
+    {
+        host:process.env.REDIS_HOST,
+        port:process.env.REDIS_PORT,
+        password:process.env.REDIS_PASSWORD,
+        maxRetriesPerRequest:null
+    }
+)
 import { io } from "../index.js";
 const transporter = nodemailer.createTransport({
     service: 'gmail',
