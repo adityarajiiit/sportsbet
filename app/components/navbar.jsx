@@ -32,7 +32,8 @@ function Navbar() {
   useEffect(() => {
     if (!session?.user?.id) return;
     const socket = io(
-       (process.env.NEXT_PUBLIC_SOCKET_URL || 'https://sportsbet-betting.onrender.com') ,
+      process.env.NEXT_PUBLIC_SOCKET_URL ||
+        "https://sportsbet-betting.onrender.com",
     );
     socket.on("connect", () => {
       socket.emit("join-room", session.user.id);
@@ -59,7 +60,7 @@ function Navbar() {
   }, [session?.user?.id]);
   return (
     <header
-      className="flex justify-between items-center p-3 pr-0 w-full h-20 absolute top-0 z-10 bg-transparent "
+      className="flex justify-between items-center p-3 lg:pr-0 w-full h-20 absolute top-0 z-10 bg-transparent "
       data-theme={theme}
     >
       <div className="flex justify-center items-center gap-2 pl-2">
@@ -100,44 +101,31 @@ function Navbar() {
           </Link>
         </div>
       </div>
-      <div className="hidden lg:flex items-center gap-2">
-        <AlertsPanel />
-        <Link
-          href="/admin"
-          className="btn rounded-full p-2.5 border-base-content/20"
-        >
-          <FaUserLock className="size-4.5" />
-        </Link>
+      <div className="hidden lg:flex items-center gap-0">
         {session ? (
           <button
             onClick={() => signOut({ callbackUrl: "/" })}
-            className="px-6 py-3 rounded-full bg-[#c1d71e] font-bold text-base-100 tracking-widest uppercase transform hover:scale-102 hover:bg-[#FFB22C] transition-all duration-200 font-inter text-sm "
+            className="flex justify-start items-center clip-custom2 h-16 w-28 p-3 px-4 bg-[#b6e24e] font-bold text-base-100 tracking-widest uppercase transform hover:bg-[#ffe32c] transition-all duration-200 font-inter text-sm relative left-5"
           >
             Log Out
           </button>
         ) : (
           <Link
             href="/login"
-            className="px-6 py-3 rounded-full bg-[#b6e24e] font-bold text-base-100 tracking-widest uppercase transform hover:scale-102 hover:bg-[#FFB22C] transition-all duration-200 font-inter text-sm "
+            className="flex justify-start items-center clip-custom2 h-16 w-28 p-3 px-4 bg-[#b6e24e] font-bold text-base-100 tracking-widest uppercase transform hover:bg-[#ffe32c] transition-all duration-200 font-inter text-sm relative left-5"
           >
             Log In
           </Link>
         )}
-        <div className="flex justify-center items-end pr-2 flex-col font-poppins font-semibold text-xs clip-custom w-36 h-16 bg-info">
+        <div className="flex justify-center items-end pr-2 flex-col font-poppins font-semibold text-xs clip-custom w-28 h-16 bg-info m-0">
           <span className="text-base-100 text-xs">Balance</span>
-          <span className="text-info-content text-lg sm:text-xl font-bold">
+          <span className="text-info-content text-lg sm:text-xl font-bold line-clamp-1">
             ₹{walletBalance.toFixed(2)}
           </span>
         </div>
       </div>
       <div className="lg:hidden flex items-center gap-2">
         <AlertsPanel />
-        <Link
-          href="/admin"
-          className="btn rounded-full p-2.5 border-base-content/20"
-        >
-          <FaUserLock className="size-4.5" />
-        </Link>
         <div className="dropdown dropdown-bottom dropdown-end ">
           <div tabIndex={0} role="button" className="btn btn-circle">
             <HiOutlineMenuAlt3 className="size-6" />
@@ -192,12 +180,6 @@ function Navbar() {
               </Link>
             )}
           </ul>
-        </div>
-        <div className="flex justify-center items-end pr-2 flex-col font-poppins font-semibold text-xs clip-custom w-36 h-16 bg-info">
-          <span className="text-base-100 text-xs">Balance</span>
-          <span className="text-info-content text-lg sm:text-xl font-bold">
-            ₹{walletBalance.toFixed(2)}
-          </span>
         </div>
       </div>
     </header>
